@@ -1,9 +1,9 @@
-from keras.utils import to_categorical
-from keras.preprocessing.image import ImageDataGenerator
+from __future__ import absolute_import
+
 from keras.utils import Sequence
+from keras.utils import to_categorical
 import h5py as h5
 import numpy as np
-
 import cv2
 
 class HDF5ImageGenerator(Sequence):
@@ -59,7 +59,9 @@ class HDF5ImageGenerator(Sequence):
 
         # It must implement a preprocess method.
         def preprocess(self, image):
-            return cv2.resize(image, (self.width, self.height), interpolation=self.inter)
+        return cv2.resize(image,
+            (self.width, self.height),
+            interpolation=self.inter)
     
     # Optional: Instanciate preprocessors.
     myPreprocessor = Resizer(227, 227)

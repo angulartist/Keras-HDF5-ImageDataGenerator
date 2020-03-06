@@ -35,4 +35,4 @@ TBD
 =======
 # Just a DEAD SIMPLE HDF5 files custom ImageGenerator
 
-![](generator.gif)
+![](assets/generator.gif)
