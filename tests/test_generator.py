@@ -41,13 +41,11 @@ def get_generator():
     )
 
     # TODO: Test model.
-    
-    assert True
 
 def test_generator():
     gen = get_generator()
     
-    assert 2==2
+    assert True
 
 if __name__ == '__main__':
     pytest.main([__file__])
