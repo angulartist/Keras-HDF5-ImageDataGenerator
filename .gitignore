@@ -41,3 +41,4 @@ output/
 
 # Jupyter
 .ipynb_checkpoints/
+dist/
