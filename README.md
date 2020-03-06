@@ -3,6 +3,7 @@ Keras HDF5 ImageDataGenerator
 
 version number: 0.0.1
 author: HDF5 ImageDataGenerator
+status: Work in progress
 
 Overview
 --------
@@ -31,3 +32,7 @@ Example
 -------
 
 TBD
+=======
+# Just a DEAD SIMPLE HDF5 files custom ImageGenerator
+
+![](generator.gif)
