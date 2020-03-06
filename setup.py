@@ -37,5 +37,6 @@ setup(
     author='HDF5 ImageDataGenerator',
     install_requires=install_requires,
     dependency_links=dependency_links,
-    author_email='michel@kebab.io'
+    author_email='michel@kebab.io',
+    python_requires='>=3'
 )

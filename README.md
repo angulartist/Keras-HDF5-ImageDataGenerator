@@ -26,13 +26,9 @@ Or clone the repo:
 Contributing
 ------------
 
-TBD
+michel @angulartist
 
 Example
 -------
 
 TBD
-=======
-# Just a DEAD SIMPLE HDF5 files custom ImageGenerator
-
-![](assets/generator.gif)
