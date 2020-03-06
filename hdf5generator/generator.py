@@ -99,6 +99,7 @@ class HDF5ImageGenerator(Sequence):
         self.y_key = y_key
         self.num_classes = num_classes
         self.batch_size = batch_size
+        self.normalize = normalize
         self.hot_encoding = hot_encoding
         self.augmenter = augmenter
         self.processors = processors
@@ -213,7 +214,9 @@ class HDF5ImageGenerator(Sequence):
         if self.augmenter is not None:
             (batch_X, batch_y) = next(self.augmenter.flow(batch_X, batch_y, batch_size=self.batch_size))
         
-        batch_X = self.normalize(batch_X)
+        # Shall we normalize to range [0, 1]?
+        if self.normalize:
+            batch_X = self.normalize(batch_X)
         
         return (batch_X, batch_y)
     
