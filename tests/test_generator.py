@@ -61,7 +61,7 @@ def create_sequential_model(num_classes=2, input_shape=(227, 227, 3)):
 
 def test_label_hot_encode():
     classes = ['Cat', 'Dog', 'Panda', 'Bird', 'Zebra']
-    y = [np.random.choice(classes) for x in range(16)]
+    y = [np.random.choice(classes) for _ in range(16)]
     le = LabelEncoder()
     scalar_labels = le.fit_transform(y)
 
