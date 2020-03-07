@@ -35,7 +35,7 @@ Please take a look the to generator.py file to see very basic examples.
 
 ToDo
 -------
-[X] - Generator
-[] - Doc
-[] - Some preprocessors
-[] - An HDF5 writer
+- [x] - Generator
+- [] - Doc
+- [] - Some preprocessors
+- [] - An HDF5 writer
