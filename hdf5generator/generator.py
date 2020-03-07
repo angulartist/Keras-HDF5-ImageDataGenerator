@@ -33,14 +33,19 @@ class HDF5ImageGenerator(Sequence):
         shuffle: <Boolean>
             Shuffle images at the end of each epoch.
             Default is True.
-        normalize: <Boolean>
-            Normalize the pixel intensities
-            to the range [0, 1].
-            Default is True.
-        label_hot_encoding: <Boolean>
-            Convert integer labels vector
-            to binary class matrix (to_categorical).
-            Default is True.
+        scaler: "std", "norm" or False
+            "std" mode means standardization to range [-1, 1]
+            with 0 mean and unit variance.
+            "norm" mode means normalization to range [0, 1].
+            Default is "std".
+        labels_encoding: "hot", "smooth" or False
+            "hot" mode means classic one hot encoding.
+            "smooth" mode means smooth hot encoding.
+            Default is "hot".
+        smooth_factor: <Int> or <Float>
+            smooth factor used by smooth
+            labels encoding.
+            Default is 0.1.
         augmenter: <ImageDataGenerator(object)>
             An ImageDataGenerator to apply
             various image transformations
@@ -94,7 +99,8 @@ class HDF5ImageGenerator(Sequence):
                  batch_size=32,
                  shuffle=True,
                  scaler='std',
-                 labels_encoding=True,
+                 labels_encoding='hot',
+                 smooth_factor=0.1,
                  augmenter=None,
                  processors=None):
         
@@ -108,16 +114,30 @@ class HDF5ImageGenerator(Sequence):
         self.scaler = scaler
         
         if self.scaler and augmenter is not None:
-            warnings.warn('Do not use `scaler` and'
+            warnings.warn('Do not use `"scaler"` and'
                           'ImageDataGenerator feature'
                           'scaling at the same time.')
+            
+        if labels_encoding not in {'hot', 'smooth', False}:
+            raise ValueError(
+                '`labels_encoding` should be `"hot"` '
+                '(classic binary matrix) or '
+                '`"smooth"` (smooth encoding) or '
+                'False (no labels encoding).'
+                'Received: %s' % labels_encoding)
+        self.labels_encoding = labels_encoding
+        
+        if self.labels_encoding == 'smooth' and smooth_factor <= 0:
+            raise ValueError('`"smooth"` labels encoding'
+                          'must use a `"smooth_factor"`'
+                          'greater than 0.')
         
         self.src = src
         self.num_classes = num_classes
         self.X_key = X_key
         self.y_key = y_key
         self.batch_size = batch_size
-        self.labels_encoding = labels_encoding
+        self.smooth_factor = smooth_factor
         self.augmenter = augmenter
         self.processors = processors
         self.shuffle = shuffle
@@ -290,10 +310,6 @@ class HDF5ImageGenerator(Sequence):
         # Grab corresponding labels from the HDF5 source file.
         batch_y = self.get_dataset_items(self.y_key, inds)
         
-        # Shall we apply labels one hot encoding?
-        if self.labels_encoding:
-            batch_y = self.apply_labels_encoding(batch_y)
-        
         # Shall we apply any preprocessor?
         if self.processors is not None:
             batch_X = self.preprocess(batch_X)
@@ -308,7 +324,15 @@ class HDF5ImageGenerator(Sequence):
                 'std' : self.apply_standardization,
                 'norm': self.apply_normalization,
             }[self.scaler](batch_X)
-                            
+            
+        # Shall we apply labels encoding?
+        if self.labels_encoding:
+            batch_y = self.apply_labels_encoding(
+                batch_y,
+                smooth_factor = self.smooth_factor
+                    if self.labels_encoding == 'smooth'
+                    else 0)
+                                        
         return (batch_X, batch_y)
     
     def on_epoch_end(self):

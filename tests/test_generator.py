@@ -26,6 +26,8 @@ class Resizer(object):
 def create_generator(
     num_classes=2,
     batch_size=16,
+    labels_encoding_mode='smooth',
+    smooth_factor=0.1,
     shape=(227, 227)):
     myPreprocessor = Resizer(shape)
     
@@ -42,6 +44,8 @@ def create_generator(
         src= '../../storage/datasets/test.h5',
         num_classes=num_classes,
         scaler='std',
+        labels_encoding=labels_encoding_mode,
+        smooth_factor=smooth_factor,
         batch_size=batch_size,
         augmenter=aug,
         processors=[myPreprocessor]
