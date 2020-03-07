@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import warnings
+
 import h5py as h5
 
 from keras.utils import Sequence
@@ -104,6 +106,12 @@ class HDF5ImageGenerator(Sequence):
                 'False (no feature scaling).'
                 'Received: %s' % scaler)
         self.scaler = scaler
+        
+        if self.scaler and augmenter is not None:
+            warnings.warn('Do not use `scaler` and'
+                          'ImageDataGenerator feature'
+                          'scaling at the same time.')
+        
         self.src = src
         self.num_classes = num_classes
         self.X_key = X_key
