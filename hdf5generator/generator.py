@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+import h5py as h5
+
 from keras.utils import Sequence
 from keras.utils import to_categorical
-import h5py as h5
 import numpy as np
 import cv2
 
@@ -90,18 +91,25 @@ class HDF5ImageGenerator(Sequence):
                  y_key='labels',
                  batch_size=32,
                  shuffle=True,
-                 normalize=True,
-                 label_hot_encoding=True,
+                 scaler='std',
+                 labels_encoding=True,
                  augmenter=None,
                  processors=None):
         
+        if scaler not in {'std', 'norm', False}:
+            raise ValueError(
+                '`scaler` should be `"std"` '
+                '(standardization [-1, 1]) or '
+                '`"norm"` (normalization [0, 1]) or '
+                'False (no feature scaling).'
+                'Received: %s' % scaler)
+        self.scaler = scaler
         self.src = src
         self.num_classes = num_classes
         self.X_key = X_key
         self.y_key = y_key
         self.batch_size = batch_size
-        self.normalize = normalize
-        self.label_hot_encoding = label_hot_encoding
+        self.labels_encoding = labels_encoding
         self.augmenter = augmenter
         self.processors = processors
         self.shuffle = shuffle
@@ -223,7 +231,25 @@ class HDF5ImageGenerator(Sequence):
         return batch_y
     
     @staticmethod
-    def apply_normalize(X):
+    def apply_standardization(batch_X):
+        """Scale the pixel intensities
+         to the range [-1, 1], 0 mean and unit variance.
+         
+        # Arguments
+            X: Batch of image tensors to be
+            standardized.
+        
+        # Returns
+            A batch of standardized image tensors.
+        """
+        std_batch_X = batch_X.astype('float32')
+        std_batch_X -= np.mean(batch_X)
+        std_batch_X /= np.std(batch_X)
+                
+        return std_batch_X
+    
+    @staticmethod
+    def apply_normalization(batch_X):
         """Normalize the pixel intensities
          to the range [0, 1].
          
@@ -234,7 +260,7 @@ class HDF5ImageGenerator(Sequence):
         # Returns
             A batch of normalized image tensors.
         """
-        return X.astype('float32') / 255.0
+        return batch_X.astype('float32') / 255.0
 
     def __getitem__(self, index): 
         """Generates one batch of data.
@@ -257,7 +283,7 @@ class HDF5ImageGenerator(Sequence):
         batch_y = self.get_dataset_items(self.y_key, inds)
         
         # Shall we apply labels one hot encoding?
-        if self.label_hot_encoding:
+        if self.labels_encoding:
             batch_y = self.apply_labels_encoding(batch_y)
         
         # Shall we apply any preprocessor?
@@ -267,11 +293,14 @@ class HDF5ImageGenerator(Sequence):
         # Shall we apply any data augmentation?
         if self.augmenter is not None:
             (batch_X, batch_y) = next(self.augmenter.flow(batch_X, batch_y, batch_size=self.batch_size))
-        
-        # Shall we normalize to range [0, 1]?
-        if self.normalize:
-            batch_X = self.apply_normalize(batch_X)
-        
+                    
+        # Shall we scale features?
+        if self.scaler:
+            batch_X =  {
+                'std' : self.apply_standardization,
+                'norm': self.apply_normalization,
+            }[self.scaler](batch_X)
+                            
         return (batch_X, batch_y)
     
     def on_epoch_end(self):

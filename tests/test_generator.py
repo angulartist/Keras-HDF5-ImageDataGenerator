@@ -41,6 +41,7 @@ def create_generator(
     gen = HDF5ImageGenerator(
         src= '../../storage/datasets/test.h5',
         num_classes=num_classes,
+        scaler='std',
         batch_size=batch_size,
         augmenter=aug,
         processors=[myPreprocessor]
@@ -84,7 +85,7 @@ def test_labels_encoding():
     'same with labels smoothing'
 
     
-def test_normalize():
+def test_normalization():
     X = np.array([
         [100, 200, 127],
         [75, 225, 127],
@@ -94,9 +95,25 @@ def test_normalize():
     test_X = X.astype('float32') / 255.0
         
     gen = create_generator()
-    normalized_X = gen.apply_normalize(X)
+    normalized_X = gen.apply_normalization(X)
     
-    assert np.array_equal(normalized_X, test_X), 'normalied_X is in the range [0, 1]'
+    assert np.array_equal(normalized_X, test_X), 'normalized_X is in the range [0, 1]'
+    
+def test_standardization():
+    X = np.array([
+        [100, 200, 127],
+        [75, 225, 127],
+        [50, 250, 127],
+        [25, 255, 127]
+    ])
+    
+    test_X = X.astype('float32') - np.mean(X)
+    test_X /= np.std(X)
+        
+    gen = create_generator()
+    std_X = gen.apply_standardization(X)
+    
+    assert np.array_equal(std_X, test_X), 'std is in the range [-1, 1]'
     
 def test_len():
     file = h5.File('../../storage/datasets/test.h5', 'r')
