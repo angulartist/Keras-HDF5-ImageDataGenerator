@@ -154,24 +154,51 @@ class HDF5ImageGenerator(Sequence):
 
         return np.array(X_processed)
 
-    def label_hot_encode(self, batch_y):
+    @staticmethod
+    def apply_labels_smoothing(batch_y, factor):
+        """Applies labels smoothing to the original
+         labels binary matrix.
+         
+        # Arguments
+            batch_y: Vector (batch) of integer labels.
+            factor: Int or Float, smoothing factor.
+        
+        # Returns
+            A binary class matrix.
+        """
+        batch_y *= (1 - factor)
+        batch_y += (factor / batch_y.shape[1])
+
+        return batch_y
+
+    def apply_labels_encoding(self, batch_y, smooth_factor=0):
         """Converts a class vector (integers) to binary class matrix.
          See Keras to_categorical utils function.
          
         # Arguments
             batch_y: Vector (batch) of integer labels.
+            smooth_factor: Int or Float
+                applies labels smoothing if > 0.
+            Default is 0.
             
-        # Example
-        1 => [1000]
-        2 => [0100]
-        3 => [0001]
+        # Examples
+            Outputs:
+            1 => [1000]
+            2 => [0100]
+            3 => [0001]
         
         # Returns
             A binary class matrix.
         """
-        return to_categorical(batch_y, num_classes=self.num_classes)
+        batch_y = to_categorical(batch_y, num_classes=self.num_classes)
+        
+        if smooth_factor > 0:
+            batch_y = self.apply_labels_smoothing(batch_y, factor=smooth_factor)
+            
+        return batch_y
     
-    def apply_normalize(self, X):
+    @staticmethod
+    def apply_normalize(X):
         """Normalize the pixel intensities
          to the range [0, 1].
          
@@ -206,7 +233,7 @@ class HDF5ImageGenerator(Sequence):
         
         # Shall we apply labels one hot encoding?
         if self.label_hot_encoding:
-            batch_y = self.label_hot_encode(batch_y)
+            batch_y = self.apply_labels_encoding(batch_y)
         
         # Shall we apply any preprocessor?
         if self.processors is not None:

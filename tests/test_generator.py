@@ -59,19 +59,31 @@ def create_sequential_model(num_classes=2, input_shape=(227, 227, 3)):
     
     return model
 
-def test_label_hot_encode():
+def labels_smoothing(y, factor=0.1):
+    y *= (1 - factor)
+    y += (factor / y.shape[1])
+
+    return y
+
+def test_labels_encoding():
     classes = ['Cat', 'Dog', 'Panda', 'Bird', 'Zebra']
     y = [np.random.choice(classes) for x in range(16)]
     le = LabelEncoder()
     scalar_labels = le.fit_transform(y)
 
     gen = create_generator(num_classes=len(classes))
-    binary_matrix = gen.label_hot_encode(scalar_labels)
+    binary_matrix = gen.apply_labels_encoding(scalar_labels)
+    smooth_binary_matrix = gen.apply_labels_encoding(scalar_labels, 0.1)
     
     assert np.array_equal(
         to_categorical(scalar_labels, num_classes=len(classes)),
         binary_matrix)
     'generated binary matrix should be equal to the output of to_categorical'
+    
+    assert np.array_equal(
+        labels_smoothing(to_categorical(scalar_labels,num_classes=len(classes)), 0.1),
+        smooth_binary_matrix)
+    'same with labels smoothing'
 
     
 def test_normalize():
