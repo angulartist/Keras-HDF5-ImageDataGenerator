@@ -54,16 +54,15 @@ class HDF5ImageGenerator(Sequence):
     ```python
     # Example of a simple imgge resizer pre-processor.
     class Resizer(object):
-        def __init__(self, width, height, inter=cv2.INTER_AREA):
+        def __init__(self, width, height):
             self.width = width
             self.height = height
-            self.inter = inter
 
         # It must implement a preprocess method.
         def preprocess(self, image):
         return cv2.resize(image,
             (self.width, self.height),
-            interpolation=self.inter)
+            interpolation=cv2.INTER_AREA)
     
     # Optional: Instanciate preprocessors.
     myPreprocessor = Resizer(227, 227)
@@ -95,11 +94,11 @@ class HDF5ImageGenerator(Sequence):
                  label_hot_encoding=True,
                  augmenter=None,
                  processors=None):
-                
-        self.file = h5.File(src, 'r')
+        
+        self.src = src
+        self.num_classes = num_classes
         self.X_key = X_key
         self.y_key = y_key
-        self.num_classes = num_classes
         self.batch_size = batch_size
         self.normalize = normalize
         self.label_hot_encoding = label_hot_encoding
@@ -107,7 +106,33 @@ class HDF5ImageGenerator(Sequence):
         self.processors = processors
         self.shuffle = shuffle
         
-        self.indices = np.arange(self.file[self.X_key].shape[0])
+        self.indices = np.arange(self.get_dataset_shape(self.X_key, 0))
+        
+    def get_dataset_shape(self, dataset, index):
+        """Get a h5py dataset shape.
+        
+        # Arguments
+            dataset: <String>, dataset key.
+            index: <Int>, dataset index.
+         
+        # Returns
+            An tuple of array dimensions.
+        """
+        with h5.File(self.src, 'r') as file:
+            return file[dataset].shape[index]
+        
+    def get_dataset_items(self, dataset, indices):
+        """Get a h5py dataset items.
+        
+        # Arguments
+            dataset: <String>, dataset key.
+            indices: <List>, list of indices.
+         
+        # Returns
+            An batch of elements.
+        """
+        with h5.File(self.src, 'r') as file:
+            return file[dataset][indices]
 
     def __len__(self):
         """Denotes the number of batches
@@ -116,7 +141,7 @@ class HDF5ImageGenerator(Sequence):
         # Returns
             An integer.
         """
-        return int(np.floor(self.file[self.X_key].shape[0] / self.batch_size))
+        return int(np.floor(self.get_dataset_shape(self.X_key, 0) / self.batch_size))
 
     def preprocess(self, batch_X):
         """Takes a batch of image tensors, applies preprocessing
@@ -224,12 +249,12 @@ class HDF5ImageGenerator(Sequence):
         
         # Indices for the current batch.
         inds = np.sort(self.indices[index * self.batch_size: (index + 1) * self.batch_size])
-    
+
         # Grab corresponding images from the HDF5 source file.
-        batch_X = self.file[self.X_key][inds]
+        batch_X = self.get_dataset_items(self.X_key, inds)
         
         # Grab corresponding labels from the HDF5 source file.
-        batch_y = self.file[self.y_key][inds]
+        batch_y = self.get_dataset_items(self.y_key, inds)
         
         # Shall we apply labels one hot encoding?
         if self.label_hot_encoding:
