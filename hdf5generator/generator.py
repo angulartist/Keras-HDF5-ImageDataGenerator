@@ -34,12 +34,14 @@ class HDF5ImageGenerator(Sequence):
             Normalize the pixel intensities
             to the range [0, 1].
             Default is True.
-        hot_encoding: <Boolean>
+        label_hot_encoding: <Boolean>
             Convert integer labels vector
             to binary class matrix (to_categorical).
             Default is True.
         augmenter: <ImageDataGenerator(object)>
-            
+            An ImageDataGenerator to apply
+            various image transformations
+            (augmented data).
             Default is None.
         processors: <Array>
             List of preprocessor classes that implements
@@ -90,7 +92,7 @@ class HDF5ImageGenerator(Sequence):
                  batch_size=32,
                  shuffle=True,
                  normalize=True,
-                 hot_encoding=True,
+                 label_hot_encoding=True,
                  augmenter=None,
                  processors=None):
                 
@@ -100,7 +102,7 @@ class HDF5ImageGenerator(Sequence):
         self.num_classes = num_classes
         self.batch_size = batch_size
         self.normalize = normalize
-        self.hot_encoding = hot_encoding
+        self.label_hot_encoding = label_hot_encoding
         self.augmenter = augmenter
         self.processors = processors
         self.shuffle = shuffle
@@ -152,7 +154,7 @@ class HDF5ImageGenerator(Sequence):
 
         return np.array(X_processed)
 
-    def hot_encode(self, batch_y):
+    def label_hot_encode(self, batch_y):
         """Converts a class vector (integers) to binary class matrix.
          See Keras to_categorical utils function.
          
@@ -169,7 +171,7 @@ class HDF5ImageGenerator(Sequence):
         """
         return to_categorical(batch_y, num_classes=self.num_classes)
     
-    def normalize(self, X):
+    def apply_normalize(self, X):
         """Normalize the pixel intensities
          to the range [0, 1].
          
@@ -194,7 +196,7 @@ class HDF5ImageGenerator(Sequence):
         """
         
         # Indices for the current batch.
-        inds = np.sort(self.indices[index * self.batch_size:(index + 1) * self.batch_size])
+        inds = np.sort(self.indices[index * self.batch_size: (index + 1) * self.batch_size])
     
         # Grab corresponding images from the HDF5 source file.
         batch_X = self.file[self.X_key][inds]
@@ -203,8 +205,8 @@ class HDF5ImageGenerator(Sequence):
         batch_y = self.file[self.y_key][inds]
         
         # Shall we apply labels one hot encoding?
-        if self.hot_encoding:
-            batch_y = self.hot_encode(batch_y)
+        if self.label_hot_encoding:
+            batch_y = self.label_hot_encode(batch_y)
         
         # Shall we apply any preprocessor?
         if self.processors is not None:
@@ -216,7 +218,7 @@ class HDF5ImageGenerator(Sequence):
         
         # Shall we normalize to range [0, 1]?
         if self.normalize:
-            batch_X = self.normalize(batch_X)
+            batch_X = self.apply_normalize(batch_X)
         
         return (batch_X, batch_y)
     

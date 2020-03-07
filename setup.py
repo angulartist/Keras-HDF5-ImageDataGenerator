@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 here = path.abspath(path.dirname(__file__))
 
@@ -34,7 +34,7 @@ setup(
     keywords='',
     packages=find_packages(exclude=['docs', 'tests*']),
     include_package_data=True,
-    author='HDF5 ImageDataGenerator',
+    author='@angulartist',
     install_requires=install_requires,
     dependency_links=dependency_links,
     author_email='michel@kebab.io',
