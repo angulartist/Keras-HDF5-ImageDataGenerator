@@ -67,7 +67,7 @@ def labels_smoothing(y, factor=0.1):
 
 def test_labels_encoding():
     classes = ['Cat', 'Dog', 'Panda', 'Bird', 'Zebra']
-    y = [np.random.choice(classes) for x in range(16)]
+    y = [np.random.choice(classes) for _ in range(16)]
     le = LabelEncoder()
     scalar_labels = le.fit_transform(y)
 
