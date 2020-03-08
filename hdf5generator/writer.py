@@ -15,9 +15,9 @@ class HDF5ImageWriter(object):
         
         self.db = h5.File(src, 'x')
         self.images = self.db.create_dataset(
-            X_key, dims, dtype='float32', compression='gzip')
+            X_key, dims, dtype='float32')
         self.labels = self.db.create_dataset(
-            y_key, (dims[0],), dtype='int', compression='gzip')
+            y_key, (dims[0],), dtype='int')
         self.buffer_size = buffer_size
         self.buffer = {'tmp_images': [], 'tmp_labels': []}
         self.index = 0

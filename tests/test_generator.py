@@ -31,25 +31,23 @@ def create_generator(
     shape=(227, 227)):
     myPreprocessor = Resizer(shape)
     
-    aug = ImageDataGenerator(
+    myAugmenter = ImageDataGenerator(
         rotation_range=8,
         zoom_range = 0.2, 
         width_shift_range=0.1,
         height_shift_range=0.1,
         horizontal_flip=False,
-        fill_mode='nearest'
-    )
+        fill_mode='nearest')
     
     gen = HDF5ImageGenerator(
-        src= '../../storage/datasets/test.h5',
+        src= '../../storage/datasets/c.h5',
         num_classes=num_classes,
         scaler='std',
         labels_encoding=labels_encoding_mode,
         smooth_factor=smooth_factor,
         batch_size=batch_size,
-        augmenter=aug,
-        processors=[myPreprocessor]
-    )
+        augmenter=myAugmenter,
+        processors=[myPreprocessor])
 
     return gen
     
@@ -119,7 +117,7 @@ def test_standardization():
     
     assert np.array_equal(std_X, test_X), 'std is in the range [-1, 1]'
     
-def test_len():
+def tbd_test_len():
     file = h5.File('../../storage/datasets/test.h5', 'r')
     len_file_X = len(file['images'])
     
@@ -130,16 +128,16 @@ def test_len():
     assert num_batches == len(gen), 'len() returns the right number of batches'
     
 def test_get_next_batch():
-    gen = create_generator() # num_batches is 16
+    gen = create_generator(batch_size=32)
     
     (X, y) = gen[np.random.randint(10)]
         
-    assert X.shape == (16, 227, 227, 3), 'equals to 16, 227x227x3 images'
-    assert y.shape == (16, 2),           'equals to 16 labels (2 classes)'
+    assert X.shape == (32, 227, 227, 3), 'equals to 32, 227x227x3 images'
+    assert y.shape == (32, 2),           'equals to 32 labels (2 classes)'
 
 def test_generator():
-    train_gen   = create_generator(shape=(28, 28))
-    val_gen     = create_generator(shape=(28, 28))
+    train_gen   = create_generator(batch_size=32, shape=(28, 28))
+    val_gen     = create_generator(batch_size=32, shape=(28, 28))
     model       = create_sequential_model(shape=(28, 28, 3))
         
     model.compile(

@@ -76,7 +76,7 @@ class HDF5ImageGenerator(Sequence):
     myPreprocessor = Resizer(227, 227)
     
     # Optional: Declare a data augmenter.
-    aug = ImageDataGenerator(
+    myAugmenter = ImageDataGenerator(
         rotation_range=8,
         zoom_range = 0.2, 
         width_shift_range=0.1,
@@ -86,9 +86,10 @@ class HDF5ImageGenerator(Sequence):
     )
 
     # Create the generator.
-    train_gen = HDF5ImageGenerator('path/to/my/file.h5',
-                      augmenter=aug,
-                      processors=[myPreprocessor])
+    train_gen = HDF5ImageGenerator(
+        'path/to/my/file.h5',
+         augmenter=myAugmenter,
+         processors=[myPreprocessor])
     ```
     """
     def __init__(self,
@@ -112,11 +113,6 @@ class HDF5ImageGenerator(Sequence):
                 'False (no feature scaling).'
                 'Received: %s' % scaler)
         self.scaler = scaler
-        
-        if self.scaler and augmenter is not None:
-            warnings.warn('Do not use `"scaler"` and'
-                          'ImageDataGenerator feature'
-                          'scaling at the same time.')
             
         if labels_encoding not in {'hot', 'smooth', False}:
             raise ValueError(
@@ -262,19 +258,20 @@ class HDF5ImageGenerator(Sequence):
     def apply_standardization(batch_X):
         """Scale the pixel intensities
          to the range [-1, 1], 0 mean and unit variance.
+         z = (x - u) / s
          
         # Arguments
-            X: Batch of image tensors to be
+            batch_X: Batch of image tensors to be
             standardized.
         
         # Returns
             A batch of standardized image tensors.
         """
-        std_batch_X = batch_X.astype('float32')
-        std_batch_X -= np.mean(batch_X)
-        std_batch_X /= np.std(batch_X)
+        batch_X = batch_X.astype('float32')
+        batch_X -= np.mean(batch_X)
+        batch_X /= np.std(batch_X)
                 
-        return std_batch_X
+        return batch_X
     
     @staticmethod
     def apply_normalization(batch_X):
@@ -282,7 +279,7 @@ class HDF5ImageGenerator(Sequence):
          to the range [0, 1].
          
         # Arguments
-            X: Batch of image tensors to be
+            batch_X: Batch of image tensors to be
             normalized.
         
         # Returns
@@ -316,7 +313,8 @@ class HDF5ImageGenerator(Sequence):
          
         # Shall we apply any data augmentation?
         if self.augmenter is not None:
-            (batch_X, batch_y) = next(self.augmenter.flow(batch_X, batch_y, batch_size=self.batch_size))
+            (batch_X, batch_y) = next(self.augmenter.flow(
+                batch_X, batch_y, batch_size=self.batch_size))
                     
         # Shall we scale features?
         if self.scaler:
@@ -338,7 +336,7 @@ class HDF5ImageGenerator(Sequence):
     def on_epoch_end(self):
         """Triggered once at the very beginning as well as 
          at the end of each epoch. If the shuffle parameter 
-         is set to True, image tensors will be shuffled.
+         is set to True, image tensor indices will be shuffled.
         """
         if self.shuffle:
             np.random.shuffle(self.indices)
