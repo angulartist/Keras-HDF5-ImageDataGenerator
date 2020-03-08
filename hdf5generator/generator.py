@@ -173,7 +173,7 @@ class HDF5ImageGenerator(Sequence):
         # Returns
             An integer.
         """
-        return int(np.floor(self.get_dataset_shape(self.X_key, 0) / self.batch_size))
+        return int(np.ceil(self.get_dataset_shape(self.X_key, 0) / float(self.batch_size)))
 
     def preprocess(self, batch_X):
         """Takes a batch of image tensors, applies preprocessing

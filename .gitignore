@@ -40,6 +40,6 @@ docs/_build
 output/
 
 # Jupyter
-.ipynb_checkpoints/
-.ipynb
+*.ipynb_checkpoints/
+*.ipynb
 dist/
