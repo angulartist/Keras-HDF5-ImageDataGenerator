@@ -23,7 +23,7 @@ def create_generator(
     smooth_factor=0.1,
     h=227, w=227):
     
-    myAugmenter = Compose([
+    my_augmenter = Compose([
         HorizontalFlip(p=0.5),
         RandomGamma(gamma_limit=(80, 120), p=0.5),
         Resize(h, w, cv2.INTER_AREA),
@@ -31,13 +31,13 @@ def create_generator(
     ])
     
     gen = HDF5ImageGenerator(
-        src= '../../storage/datasets/c.h5',
+        src='../../storage/datasets/c.h5',
         num_classes=num_classes,
         scaler=True,
         labels_encoding=labels_encoding_mode,
         smooth_factor=smooth_factor,
         batch_size=batch_size,
-        augmenter=myAugmenter)
+        augmenter=my_augmenter)
 
     return gen
     

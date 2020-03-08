@@ -56,7 +56,7 @@ class HDF5ImageGenerator(Sequence):
     Example of usage:
     ```python
     # Example of a simple imgge resizer pre-processor.
-    myAugmenter = Compose([
+    my_augmenter = Compose([
         HorizontalFlip(p=0.5),
         RandomContrast(limit=0.2, p=0.5),
         RandomGamma(gamma_limit=(80, 120), p=0.5),
@@ -67,7 +67,7 @@ class HDF5ImageGenerator(Sequence):
     # Create the generator.
     train_gen = HDF5ImageGenerator(
         'path/to/my/file.h5',
-         augmenter=myAugmenter)
+         augmenter=my_augmenter)
     ```
     """
     def __init__(self,
