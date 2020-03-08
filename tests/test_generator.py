@@ -8,46 +8,36 @@ from keras.utils import to_categorical
 from keras.models import Sequential, Model
 from keras.layers import Dense, Input, SeparableConv2D, Flatten
 from sklearn.preprocessing import LabelEncoder
+from albumentations import (
+    Compose, HorizontalFlip, RandomGamma,
+    ToFloat, Resize
+)
 import numpy as np
 import h5py as h5
 import cv2
-
-class Resizer(object):
-    def __init__(self,
-                 shape=(128, 128),
-                 interp=cv2.INTER_AREA):
-        
-        self.shape = shape
-        self.interp = interp
-
-    def preprocess(self, image):
-        return cv2.resize(image, self.shape, interpolation=self.interp)
         
 def create_generator(
     num_classes=2,
     batch_size=16,
     labels_encoding_mode='smooth',
     smooth_factor=0.1,
-    shape=(227, 227)):
-    myPreprocessor = Resizer(shape)
+    h=227, w=227):
     
-    myAugmenter = ImageDataGenerator(
-        rotation_range=8,
-        zoom_range = 0.2, 
-        width_shift_range=0.1,
-        height_shift_range=0.1,
-        horizontal_flip=False,
-        fill_mode='nearest')
+    myAugmenter = Compose([
+        HorizontalFlip(p=0.5),
+        RandomGamma(gamma_limit=(80, 120), p=0.5),
+        Resize(h, w, cv2.INTER_AREA),
+        # ToFloat(max_value=255)
+    ])
     
     gen = HDF5ImageGenerator(
         src= '../../storage/datasets/c.h5',
         num_classes=num_classes,
-        scaler='std',
+        scaler=True,
         labels_encoding=labels_encoding_mode,
         smooth_factor=smooth_factor,
         batch_size=batch_size,
-        augmenter=myAugmenter,
-        processors=[myPreprocessor])
+        augmenter=myAugmenter)
 
     return gen
     
@@ -101,7 +91,7 @@ def test_normalization():
     
     assert np.array_equal(normalized_X, test_X), 'normalized_X is in the range [0, 1]'
     
-def test_standardization():
+def deprecated_test_standardization():
     X = np.array([
         [100, 200, 127],
         [75, 225, 127],
@@ -118,27 +108,17 @@ def test_standardization():
     
     assert np.array_equal(std_X, X), 'std is in the range [-1, 1]'
     
-def tbd_test_len():
-    file = h5.File('../../storage/datasets/test.h5', 'r')
-    len_file_X = len(file['images'])
-    
-    batch_size = 32
-    num_batches = len_file_X // batch_size
-    gen = create_generator(batch_size=batch_size)
-    
-    assert num_batches == len(gen), 'len() returns the right number of batches'
-    
 def test_get_next_batch():
     gen = create_generator(batch_size=32)
     
-    (X, y) = gen[np.random.randint(10)]
+    X, y = gen[np.random.randint(10)]
         
     assert X.shape == (32, 227, 227, 3), 'equals to 32, 227x227x3 images'
     assert y.shape == (32, 2),           'equals to 32 labels (2 classes)'
 
 def test_generator():
-    train_gen   = create_generator(batch_size=32, shape=(28, 28))
-    val_gen     = create_generator(batch_size=32, shape=(28, 28))
+    train_gen   = create_generator(batch_size=32, h=28, w=28)
+    val_gen     = create_generator(batch_size=32, h=28, w=28)
     model       = create_sequential_model(shape=(28, 28, 3))
         
     model.compile(

@@ -2,3 +2,4 @@ keras
 h5py
 opencv-python
 numpy
+albumentations

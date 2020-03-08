@@ -46,50 +46,28 @@ class HDF5ImageGenerator(Sequence):
             smooth factor used by smooth
             labels encoding.
             Default is 0.1.
-        augmenter: <ImageDataGenerator(object)>
-            An ImageDataGenerator to apply
-            various image transformations
-            (augmented data).
-            Default is None.
-        processors: <Array>
-            List of preprocessor classes that implements
-            a preprocess method to apply to each batch
-            sample before the final output.
+        augmenter: albumentations Compose([]) Pipeline
+            An albumentations transformations pipeline
+            to apply to each sample.
+            (data augmentation).
             Default is None.
         
     # Examples
     Example of usage:
     ```python
     # Example of a simple imgge resizer pre-processor.
-    class Resizer(object):
-        def __init__(self, width, height):
-            self.width = width
-            self.height = height
-
-        # It must implement a preprocess method.
-        def preprocess(self, image):
-        return cv2.resize(image,
-            (self.width, self.height),
-            interpolation=cv2.INTER_AREA)
-    
-    # Optional: Instanciate preprocessors.
-    myPreprocessor = Resizer(227, 227)
-    
-    # Optional: Declare a data augmenter.
-    myAugmenter = ImageDataGenerator(
-        rotation_range=8,
-        zoom_range = 0.2, 
-        width_shift_range=0.1,
-        height_shift_range=0.1,
-        vertical_flip=False,
-        fill_mode='nearest'
-    )
+    myAugmenter = Compose([
+        HorizontalFlip(p=0.5),
+        RandomContrast(limit=0.2, p=0.5),
+        RandomGamma(gamma_limit=(80, 120), p=0.5),
+        RandomBrightness(limit=0.2, p=0.5),
+        Resize(227, 227, cv2.INTER_AREA)
+    ])
 
     # Create the generator.
     train_gen = HDF5ImageGenerator(
         'path/to/my/file.h5',
-         augmenter=myAugmenter,
-         processors=[myPreprocessor])
+         augmenter=myAugmenter)
     ```
     """
     def __init__(self,
@@ -99,21 +77,12 @@ class HDF5ImageGenerator(Sequence):
                  y_key='labels',
                  batch_size=32,
                  shuffle=True,
-                 scaler='std',
+                 scaler=True,
                  labels_encoding='hot',
                  smooth_factor=0.1,
                  augmenter=None,
                  processors=None):
         
-        if scaler not in {'std', 'norm', False}:
-            raise ValueError(
-                '`scaler` should be `"std"` '
-                '(standardization [-1, 1]) or '
-                '`"norm"` (normalization [0, 1]) or '
-                'False (no feature scaling).'
-                'Received: %s' % scaler)
-        self.scaler = scaler
-            
         if labels_encoding not in {'hot', 'smooth', False}:
             raise ValueError(
                 '`labels_encoding` should be `"hot"` '
@@ -133,10 +102,10 @@ class HDF5ImageGenerator(Sequence):
         self.X_key = X_key
         self.y_key = y_key
         self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.scaler = scaler
         self.smooth_factor = smooth_factor
         self.augmenter = augmenter
-        self.processors = processors
-        self.shuffle = shuffle
         
         self.indices = np.arange(self.get_dataset_shape(self.X_key, 0))
         
@@ -174,42 +143,6 @@ class HDF5ImageGenerator(Sequence):
             An integer.
         """
         return int(np.ceil(self.get_dataset_shape(self.X_key, 0) / float(self.batch_size)))
-
-    def preprocess(self, batch_X):
-        """Takes a batch of image tensors, applies preprocessing
-         and returns preprocessed images. A preprocessor is a class 
-         that implements a preprocess method.
-     
-        # Arguments
-            batch_X: Batch of image tensors.
-        
-        # Examples
-        Example of preprocessor:
-        
-        ```python
-        class SimpleResizer(object):
-            def __init__(self, width, height, inter=cv2.INTER_AREA):
-                self.width = width
-                self.height = height
-                self.inter = inter
-                
-            def preprocess(self, image):
-                return cv2.resize(image, (self.width, self.height), interpolation=self.inter)
-        ```
-        
-        # Returns
-            A numpy array of preprocessed
-            image tensors.
-        """
-        X_processed = []
-
-        for x in batch_X:
-            for p in self.processors:
-                x = p.preprocess(x)
-
-            X_processed.append(x)
-
-        return np.array(X_processed)
 
     @staticmethod
     def apply_labels_smoothing(batch_y, factor):
@@ -254,6 +187,7 @@ class HDF5ImageGenerator(Sequence):
             
         return batch_y
     
+    # TODO: Deprecated. 
     @staticmethod
     def apply_standardization(batch_X):
         """Scale the pixel intensities
@@ -299,29 +233,23 @@ class HDF5ImageGenerator(Sequence):
         """
         
         # Indices for the current batch.
-        inds = np.sort(self.indices[index * self.batch_size: (index + 1) * self.batch_size])
+        inds = np.sort(self.indices[index * self.batch_size : (index + 1) * self.batch_size])
 
         # Grab corresponding images from the HDF5 source file.
         batch_X = self.get_dataset_items(self.X_key, inds)
         
         # Grab corresponding labels from the HDF5 source file.
         batch_y = self.get_dataset_items(self.y_key, inds)
-        
-        # Shall we apply any preprocessor?
-        if self.processors is not None:
-            batch_X = self.preprocess(batch_X)
          
         # Shall we apply any data augmentation?
         if self.augmenter is not None:
-            (batch_X, batch_y) = next(self.augmenter.flow(
-                batch_X, batch_y, batch_size=self.batch_size))
-                    
-        # Shall we scale features?
+            batch_X = np.stack([
+                self.augmenter(image=x)['image'] for x in batch_X
+            ], axis=0)
+                                        
+        # Shall we rescale features?
         if self.scaler:
-            batch_X =  {
-                'std' : self.apply_standardization,
-                'norm': self.apply_normalization,
-            }[self.scaler](batch_X)
+            batch_X = self.apply_normalization(batch_X)
             
         # Shall we apply labels encoding?
         if self.labels_encoding:
