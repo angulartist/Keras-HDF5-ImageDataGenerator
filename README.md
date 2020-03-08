@@ -54,7 +54,9 @@ set it to `smooth` to perform smooth encoding (default is `hot`)
 * **batch_size**: the number of samples to be generated at each iteration (default is `32`)
 
 Note: 
+
 (1) When using `smooth` labels_encoding, you should provides a **smooth_factor** (defaults to `0.1`).
+
 (2) Labels stored in the HDF5 file must be integers (why the heck would you store vectors or strings anyway).
 
 Sometimes you'd like to perform some data augmentation on-the-fly, to flip, zoom, rotate or scale images. You can pass to the generator an [albumentations](https://github.com/albumentations-team/albumentations) transformation pipeline:
@@ -79,8 +81,10 @@ train_generator = HDF5ImageGenerator(
         augmenter=my_augmenter)
 ```
 
-Note: 
+Note:
+
 (1) albumentations offers a `ToFloat(max_value=255)` transformation which scales pixel intensities from [0, 255] to [0, 1]. Thus, when using it, you must turn off scaling: `scaler=False`.
+
 (2) If you want to apply standardization (mean/std), you may want to use albumentations [Normalize](https://albumentations.readthedocs.io/en/latest/api/augmentations.html#albumentations.augmentations.transforms.Normalize) instead.
 
 Finally, pass the generator to your model:
