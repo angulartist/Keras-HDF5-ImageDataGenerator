@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-__version__ = '1.0.7'
+__version__ = '1.1.0'
 
 here = path.abspath(path.dirname(__file__))
 
@@ -18,7 +18,7 @@ install_requires = [x.strip() for x in all_reqs if 'git+' not in x]
 dependency_links = [x.strip().replace('git+', '') for x in all_reqs if x.startswith('git+')]
 
 setup(
-    name='hdf5generator',
+    name='h5imagegenerator',
     version=__version__,
     description='A dead simple Keras HDF5 ImageDataGenerator',
     long_description=long_description,
@@ -32,7 +32,7 @@ setup(
       'Programming Language :: Python :: 3',
     ],
     keywords='',
-    packages=find_packages(exclude=['docs', 'tests*']),
+    packages=find_packages(exclude=['doc', 'tests*']),
     include_package_data=True,
     author='@angulartist',
     install_requires=install_requires,

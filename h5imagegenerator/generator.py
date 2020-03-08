@@ -12,7 +12,7 @@ import cv2
 class HDF5ImageGenerator(Sequence):
     """Just a simple custom Keras ImageDataGenerator that generates
      batches of tensor images from HDF5 files with (optional) real-time
-     data augmentation and preprocessing on-the-fly.
+     data augmentation.
      
     # Arguments
         src: <String>
@@ -80,8 +80,7 @@ class HDF5ImageGenerator(Sequence):
                  scaler=True,
                  labels_encoding='hot',
                  smooth_factor=0.1,
-                 augmenter=None,
-                 processors=None):
+                 augmenter=None):
         
         if labels_encoding not in {'hot', 'smooth', False}:
             raise ValueError(

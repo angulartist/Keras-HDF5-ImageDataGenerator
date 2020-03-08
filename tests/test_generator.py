@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 
-from hdf5generator.generator import HDF5ImageGenerator
+from h5imagegenerator import HDF5ImageGenerator
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import to_categorical
 from keras.models import Sequential, Model

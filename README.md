@@ -15,13 +15,7 @@ Installation / Usage
 
 To install use pip:
 
-    $ pip install hdf5generator
-
-
-Or clone the repo:
-
-    $ git clone https://github.com/angulartist/hdf5generator.git
-    $ python setup.py install
+    $ pip install h5imagegenerator
     
 Contributing
 ------------
@@ -31,11 +25,11 @@ michel @angulartist
 Example
 -------
 
-Please take a look the to generator.py file to see very basic examples.
 
-ToDo
+
+TODO LIST
 -------
-- [x] - Generator
-- [] - Doc
-- [] - Some preprocessors
-- [] - An HDF5 writer
+* [x] Generator
+* [] Docs
+* [] 
+* [] 
