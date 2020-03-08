@@ -25,7 +25,82 @@ michel @angulartist
 Example
 -------
 
+First, import the image generator class:
 
+```python
+from h5imagegenerator import HDF5ImageGenerator
+```
+
+Then, create a new image generator:
+
+```python
+train_generator = HDF5ImageGenerator(
+        src='path/to/train.h5',
+        X_key='images,
+        y_key='labels,
+        num_classes=2,
+        scaler=True,
+        labels_encoding='hot',
+        batch_size=32)
+```
+
+* **src**: the source HDF5 file
+* **X_key**: the key of the image tensors dataset (default is `images`)
+* **y_key**: the key of the labels dataset (default is `labels`)
+* **num_classes**: the total number of classes
+* **scaler**: scale inputs to the range [0, 1] (basic normalization) (default is `True`)
+* **labels_encoding**: set it to `hot` to convert integers labels to binary matrix (one hot encoding),
+set it to `smooth` to perform smooth encoding (default is `hot`)
+* **batch_size**: the number of samples to be generated at each iteration (default is `32`)
+
+Note: 
+(1) When using `smooth` labels_encoding, you should provides a **smooth_factor** (defaults to `0.1`).
+(2) Labels stored in the HDF5 file must be integers (why the heck would you store vectors or strings anyway).
+
+Sometimes you'd like to perform some data augmentation on-the-fly, to flip, zoom, rotate or scale images. You can pass to the generator an [albumentations](https://github.com/albumentations-team/albumentations) transformation pipeline:
+
+```python
+my_augmenter = Compose([
+        HorizontalFlip(p=0.5),
+        RandomContrast(limit=0.2, p=0.5),
+        RandomGamma(gamma_limit=(80, 120), p=0.5),
+        RandomBrightness(limit=0.2, p=0.5),
+        Resize(227, 227, cv2.INTER_AREA)
+    ])
+    
+train_generator = HDF5ImageGenerator(
+        src='path/to/train.h5',
+        X_key='images,
+        y_key='labels,
+        num_classes=2,
+        scaler=True,
+        labels_encoding='hot',
+        batch_size=32,
+        augmenter=my_augmenter)
+```
+
+Note: 
+(1) albumentations offers a `ToFloat(max_value=255)` transformation which scales pixel intensities from [0, 255] to [0, 1]. Thus, when using it, you must turn off scaling: `scaler=False`.
+(2) If you want to apply standardization (mean/std), you may want to use albumentations [Normalize](https://albumentations.readthedocs.io/en/latest/api/augmentations.html#albumentations.augmentations.transforms.Normalize) instead.
+
+Finally, pass the generator to your model:
+
+```python
+model.compile(
+        loss='categorical_crossentropy',
+        metrics=['accuracy'],
+        optimizer='rmsprop')
+    
+model.fit_generator(
+    train_generator,
+    validation_data=val_generator,
+    steps_per_epoch=len(train_generator),
+    validation_steps=len(val_generator),
+    workers=10,
+    use_multiprocessing=True,
+    verbose=1,
+    epochs=1)
+```
 
 TODO LIST
 -------
