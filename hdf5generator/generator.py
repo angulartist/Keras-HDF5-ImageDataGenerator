@@ -267,9 +267,9 @@ class HDF5ImageGenerator(Sequence):
         # Returns
             A batch of standardized image tensors.
         """
-        batch_X = batch_X.astype('float32')
-        batch_X -= np.mean(batch_X)
-        batch_X /= np.std(batch_X)
+        batch_X  = batch_X.astype('float32')
+        batch_X -= np.mean(batch_X, keepdims=True)
+        batch_X /= (np.std(batch_X, keepdims=True) + 1e-6)
                 
         return batch_X
     

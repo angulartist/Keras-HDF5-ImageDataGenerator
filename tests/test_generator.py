@@ -109,13 +109,14 @@ def test_standardization():
         [25, 255, 127]
     ])
     
-    test_X = X.astype('float32') - np.mean(X)
-    test_X /= np.std(X)
-        
     gen = create_generator()
     std_X = gen.apply_standardization(X)
     
-    assert np.array_equal(std_X, test_X), 'std is in the range [-1, 1]'
+    X  = X.astype('float32') 
+    X -= np.mean(X, keepdims=True)
+    X /= (np.std(X, keepdims=True) + 1e-6)
+    
+    assert np.array_equal(std_X, X), 'std is in the range [-1, 1]'
     
 def tbd_test_len():
     file = h5.File('../../storage/datasets/test.h5', 'r')
