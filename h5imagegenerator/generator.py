@@ -55,7 +55,6 @@ class HDF5ImageGenerator(Sequence):
     # Examples
     Example of usage:
     ```python
-    # Example of a simple imgge resizer pre-processor.
     my_augmenter = Compose([
         HorizontalFlip(p=0.5),
         RandomContrast(limit=0.2, p=0.5),
@@ -91,10 +90,10 @@ class HDF5ImageGenerator(Sequence):
                 'Received: %s' % labels_encoding)
         self.labels_encoding = labels_encoding
         
-        if self.labels_encoding == 'smooth' and smooth_factor <= 0:
+        if self.labels_encoding == 'smooth' and not (0 < smooth_factor <= 1):
             raise ValueError('`"smooth"` labels encoding'
-                          'must use a `"smooth_factor"`'
-                          'greater than 0.')
+                             'must use a `"smooth_factor"`'
+                             '< 0 smooth_factor <= 1')
         
         self.src = src
         self.num_classes = num_classes
