@@ -7,7 +7,6 @@ import h5py as h5
 from keras.utils import Sequence
 from keras.utils import to_categorical
 import numpy as np
-import cv2
 
 class HDF5ImageGenerator(Sequence):
     """Just a simple custom Keras ImageDataGenerator that generates
