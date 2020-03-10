@@ -9,49 +9,58 @@ from keras.utils import to_categorical
 import numpy as np
 
 class HDF5ImageGenerator(Sequence):
-    """Just a simple custom Keras ImageDataGenerator that generates
-     batches of tensor images from HDF5 files with (optional) real-time
-     data augmentation.
+    """Just a simple custom Keras HDF5 ImageDataGenerator.
+    
+    Custom Keras ImageDataGenerator that generates
+    batches of tensor images from HDF5 files with (optional) real-time
+    data augmentation.
      
-    # Arguments
-        src: <String>
-            Path of the hdf5 source file.
-        num_classes: <Int>
-            Total number of classes.
-            Default is 2.
-        X_key: <String>
-            Key of the h5 file image tensors dataset.
-            Default is "images".
-        y_key: <String>
-            Key of the h5 file labels dataset.
-            Default is "labels".
-        batch_size: <Int>
-            Size of each batch, must be a power of two.
-            (16, 32, 64, 128, 256, ...)
-            Default is 32.
-        shuffle: <Boolean>
-            Shuffle images at the end of each epoch.
-            Default is True.
-        scaler: "std", "norm" or False
-            "std" mode means standardization to range [-1, 1]
-            with 0 mean and unit variance.
-            "norm" mode means normalization to range [0, 1].
-            Default is "std".
-        labels_encoding: "hot", "smooth" or False
-            "hot" mode means classic one hot encoding.
-            "smooth" mode means smooth hot encoding.
-            Default is "hot".
-        smooth_factor: <Int> or <Float>
-            smooth factor used by smooth
-            labels encoding.
-            Default is 0.1.
-        augmenter: albumentations Compose([]) Pipeline
-            An albumentations transformations pipeline
-            to apply to each sample.
-            (data augmentation).
-            Default is None.
+    Arguments
+    ---------
+    src : str
+        Path of the hdf5 source file.
+    num_classes : int
+        Total number of classes.
+        Default is 2.
+    X_key : str
+        Key of the h5 file image tensors dataset.
+        Default is "images".
+    y_key : str
+        Key of the h5 file labels dataset.
+        Default is "labels".
+    batch_size : int
+        Size of each batch, must be a power of two.
+        (16, 32, 64, 128, 256, ...)
+        Default is 32.
+    shuffle : bool
+        Shuffle images at the end of each epoch.
+        Default is True.
+    scaler : "std", "norm" or False
+        "std" mode means standardization to range [-1, 1]
+        with 0 mean and unit variance.
+        "norm" mode means normalization to range [0, 1].
+        Default is "std".
+    labels_encoding : "hot", "smooth" or False
+        "hot" mode means classic one hot encoding.
+        "smooth" mode means smooth hot encoding.
+        Default is "hot".
+    smooth_factor : int or float
+        smooth factor used by smooth
+        labels encoding.
+        Default is 0.1.
+    augmenter : albumentations Compose([]) Pipeline
+        An albumentations transformations pipeline
+        to apply to each sample.
+        Default is None.
         
-    # Examples
+    Notes
+    -----
+    Turn off scaler (scaler=False) if using the
+    ToFloat(max_value=255) transformation from
+    albumentations.
+        
+    Examples
+    --------
     Example of usage:
     ```python
     my_augmenter = Compose([
@@ -107,37 +116,48 @@ class HDF5ImageGenerator(Sequence):
         self.indices = np.arange(self.get_dataset_shape(self.X_key, 0))
         
     def get_dataset_shape(self, dataset, index):
-        """Get a h5py dataset shape.
+        """Get an h5py dataset shape.
         
-        # Arguments
-            dataset: <String>, dataset key.
-            index: <Int>, dataset index.
+        Arguments
+        ---------
+        dataset : str
+            The dataset key.
+        index : int
+            The dataset index.
          
-        # Returns
-            An tuple of array dimensions.
+        Returns
+        -------
+        tuple of ints
+            A tuple of array dimensions.
         """
         with h5.File(self.src, 'r') as file:
             return file[dataset].shape[index]
         
     def get_dataset_items(self, dataset, indices):
-        """Get a h5py dataset items.
+        """Get an h5py dataset items.
         
-        # Arguments
-            dataset: <String>, dataset key.
-            indices: <List>, list of indices.
+        Arguments
+        ---------
+        dataset : str
+            The dataset key.
+        indices : ndarray, 
+            The list of current batch indices.
          
-        # Returns
+        Returns
+        -------
+        ndarray
             An batch of elements.
         """
         with h5.File(self.src, 'r') as file:
             return file[dataset][indices]
 
     def __len__(self):
-        """Denotes the number of batches
-         per epoch.
+        """Denotes the number of batches per epoch.
          
-        # Returns
-            An integer.
+        Returns
+        -------
+        int
+            The number of batches per epochs.
         """
         return int(np.ceil(self.get_dataset_shape(self.X_key, 0) / float(self.batch_size)))
 
@@ -146,11 +166,16 @@ class HDF5ImageGenerator(Sequence):
         """Applies labels smoothing to the original
          labels binary matrix.
          
-        # Arguments
-            batch_y: Vector (batch) of integer labels.
-            factor: Int or Float, smoothing factor.
+        Arguments
+        ---------
+        batch_y : ndarray
+            Current batch integer labels.
+        factor : float
+            Smoothing factor.
         
-        # Returns
+        Returns
+        -------
+        ndarray
             A binary class matrix.
         """
         batch_y *= (1 - factor)
@@ -162,19 +187,16 @@ class HDF5ImageGenerator(Sequence):
         """Converts a class vector (integers) to binary class matrix.
          See Keras to_categorical utils function.
          
-        # Arguments
-            batch_y: Vector (batch) of integer labels.
-            smooth_factor: Int or Float
-                applies labels smoothing if > 0.
-            Default is 0.
-            
-        # Examples
-            Outputs:
-            1 => [1000]
-            2 => [0100]
-            3 => [0001]
+        Arguments
+        ---------
+        batch_y : ndarray
+            Current batch integer labels.
+        smooth_factor : Int or Float
+            Smooth factor.
         
-        # Returns
+        Returns
+        -------
+        ndarray
             A binary class matrix.
         """
         batch_y = to_categorical(batch_y, num_classes=self.num_classes)
@@ -187,15 +209,21 @@ class HDF5ImageGenerator(Sequence):
     # TODO: Deprecated. 
     @staticmethod
     def apply_standardization(batch_X):
-        """Scale the pixel intensities
-         to the range [-1, 1], 0 mean and unit variance.
-         z = (x - u) / s
-         
-        # Arguments
-            batch_X: Batch of image tensors to be
-            standardized.
+        """Scale the pixel intensities.
         
-        # Returns
+        Scale the pixel intensities to the range [-1, 1],
+        with zero mean and unit variance.
+        Formula: z = (x - u) / s
+         
+         
+        Arguments
+        ---------
+        batch_X : ndarray
+            Batch of image tensors to be standardized.
+        
+        Returns
+        -------
+        ndarray
             A batch of standardized image tensors.
         """
         batch_X  = batch_X.astype('float32')
@@ -206,25 +234,33 @@ class HDF5ImageGenerator(Sequence):
     
     @staticmethod
     def apply_normalization(batch_X):
-        """Normalize the pixel intensities
-         to the range [0, 1].
-         
-        # Arguments
-            batch_X: Batch of image tensors to be
-            normalized.
+        """Normalize the pixel intensities. 
         
-        # Returns
+        Normalize the pixel intensities to the range [0, 1].
+         
+        Arguments
+        ---------
+        batch_X : ndarray
+            Batch of image tensors to be normalized.
+        
+        Returns
+        -------
+        ndarray
             A batch of normalized image tensors.
         """
         return batch_X.astype('float32') / 255.0
 
     def __getitem__(self, index): 
-        """Generates one batch of data.
+        """Generates a batch of data for the given index.
         
-        # Arguments
-            index: index for the current batch.
+        Arguments
+        ---------
+        index : int
+            The index for the current batch.
             
-        # Returns
+        Returns
+        -------
+        tuple of ndarrays
             A tuple containing a batch of image tensors
             and their associated labels.
         """
@@ -260,8 +296,10 @@ class HDF5ImageGenerator(Sequence):
     
     def on_epoch_end(self):
         """Triggered once at the very beginning as well as 
-         at the end of each epoch. If the shuffle parameter 
-         is set to True, image tensor indices will be shuffled.
+         at the end of each epoch.
+         
+         If the shuffle parameter is set to True,
+         image tensor indices will be shuffled.
         """
         if self.shuffle:
             np.random.shuffle(self.indices)
