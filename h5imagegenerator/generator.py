@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import warnings
 
+from typing import Tuple
+
 import h5py as h5
 
 from keras.utils import Sequence
@@ -103,19 +105,19 @@ class HDF5ImageGenerator(Sequence):
                              'must use a `"smooth_factor"`'
                              '< 0 smooth_factor <= 1')
         
-        self.src = src
-        self.num_classes = num_classes
-        self.X_key = X_key
-        self.y_key = y_key
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.scaler = scaler
-        self.smooth_factor = smooth_factor
-        self.augmenter = augmenter
+        self.src: str = src
+        self.num_classes: int = num_classes
+        self.X_key: str = X_key
+        self.y_key: str = y_key
+        self.batch_size: int = batch_size
+        self.shuffle: bool = shuffle
+        self.scaler: bool = scaler
+        self.smooth_factor: float = smooth_factor
+        self.augmenter: Any = augmenter
         
         self.indices = np.arange(self.get_dataset_shape(self.X_key, 0))
         
-    def get_dataset_shape(self, dataset, index):
+    def get_dataset_shape(self, dataset: str, index: int) -> Tuple[int, ...]:
         """Get an h5py dataset shape.
         
         Arguments
@@ -133,7 +135,7 @@ class HDF5ImageGenerator(Sequence):
         with h5.File(self.src, 'r') as file:
             return file[dataset].shape[index]
         
-    def get_dataset_items(self, dataset, indices):
+    def get_dataset_items(self, dataset: str, indices: np.ndarray) -> np.ndarray:
         """Get an h5py dataset items.
         
         Arguments
@@ -145,7 +147,7 @@ class HDF5ImageGenerator(Sequence):
          
         Returns
         -------
-        ndarray
+        np.ndarray
             An batch of elements.
         """
         with h5.File(self.src, 'r') as file:
@@ -162,20 +164,20 @@ class HDF5ImageGenerator(Sequence):
         return int(np.ceil(self.get_dataset_shape(self.X_key, 0) / float(self.batch_size)))
 
     @staticmethod
-    def apply_labels_smoothing(batch_y, factor):
+    def apply_labels_smoothing(batch_y: np.ndarray, factor: float) -> np.ndarray:
         """Applies labels smoothing to the original
          labels binary matrix.
          
         Arguments
         ---------
-        batch_y : ndarray
+        batch_y : np.ndarray
             Current batch integer labels.
         factor : float
             Smoothing factor.
         
         Returns
         -------
-        ndarray
+        np.ndarray
             A binary class matrix.
         """
         batch_y *= (1 - factor)
@@ -183,20 +185,22 @@ class HDF5ImageGenerator(Sequence):
 
         return batch_y
 
-    def apply_labels_encoding(self, batch_y, smooth_factor=0):
+    def apply_labels_encoding(self,
+                              batch_y: np.ndarray,
+                              smooth_factor: float = 0.0) -> np.ndarray:
         """Converts a class vector (integers) to binary class matrix.
          See Keras to_categorical utils function.
          
         Arguments
         ---------
-        batch_y : ndarray
+        batch_y : np.ndarray
             Current batch integer labels.
         smooth_factor : Int or Float
             Smooth factor.
         
         Returns
         -------
-        ndarray
+        np.ndarray
             A binary class matrix.
         """
         batch_y = to_categorical(batch_y, num_classes=self.num_classes)
@@ -208,7 +212,7 @@ class HDF5ImageGenerator(Sequence):
     
     # TODO: Deprecated. 
     @staticmethod
-    def apply_standardization(batch_X):
+    def apply_standardization(batch_X: np.ndarray) -> np.ndarray:
         """Scale the pixel intensities.
         
         Scale the pixel intensities to the range [-1, 1],
@@ -218,12 +222,12 @@ class HDF5ImageGenerator(Sequence):
          
         Arguments
         ---------
-        batch_X : ndarray
+        batch_X : np.ndarray
             Batch of image tensors to be standardized.
         
         Returns
         -------
-        ndarray
+        np.ndarray
             A batch of standardized image tensors.
         """
         batch_X  = batch_X.astype('float32')
@@ -233,24 +237,24 @@ class HDF5ImageGenerator(Sequence):
         return batch_X
     
     @staticmethod
-    def apply_normalization(batch_X):
+    def apply_normalization(batch_X: np.ndarray) -> np.ndarray:
         """Normalize the pixel intensities. 
         
         Normalize the pixel intensities to the range [0, 1].
          
         Arguments
         ---------
-        batch_X : ndarray
+        batch_X : np.ndarray
             Batch of image tensors to be normalized.
         
         Returns
         -------
-        ndarray
+        np.ndarray
             A batch of normalized image tensors.
         """
         return batch_X.astype('float32') / 255.0
 
-    def __getitem__(self, index): 
+    def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]: 
         """Generates a batch of data for the given index.
         
         Arguments
