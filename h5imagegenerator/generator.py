@@ -132,7 +132,7 @@ class HDF5ImageGenerator(Sequence):
         tuple of ints
             A tuple of array dimensions.
         """
-        with h5.File(self.src, 'r') as file:
+        with h5.File(self.src, 'r', libver='latest', swmr=True) as file:
             return file[dataset].shape[index]
         
     def get_dataset_items(self, dataset: str, indices: np.ndarray) -> np.ndarray:
@@ -150,7 +150,7 @@ class HDF5ImageGenerator(Sequence):
         np.ndarray
             An batch of elements.
         """
-        with h5.File(self.src, 'r') as file:
+        with h5.File(self.src, 'r', libver='latest', swmr=True) as file:
             return file[dataset][indices]
 
     def __len__(self):
@@ -268,7 +268,6 @@ class HDF5ImageGenerator(Sequence):
             A tuple containing a batch of image tensors
             and their associated labels.
         """
-        
         # Indices for the current batch.
         inds = np.sort(self.indices[index * self.batch_size : (index + 1) * self.batch_size])
 

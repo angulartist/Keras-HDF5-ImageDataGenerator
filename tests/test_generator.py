@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import os
+
 import pytest
 
 from h5imagegenerator import HDF5ImageGenerator
@@ -31,7 +33,7 @@ def create_generator(
     ])
     
     gen = HDF5ImageGenerator(
-        src='../../storage/datasets/c.h5',
+        src='../../storage/datasets/test.h5',
         num_classes=num_classes,
         scaler=True,
         labels_encoding=labels_encoding_mode,
@@ -117,6 +119,10 @@ def test_get_next_batch():
     assert y.shape == (32, 2),           'equals to 32 labels (2 classes)'
 
 def test_generator():
+    from pytictoc import TicToc
+    
+    print('Max workers:', os.cpu_count())
+    
     train_gen   = create_generator(batch_size=32, h=28, w=28)
     val_gen     = create_generator(batch_size=32, h=28, w=28)
     model       = create_sequential_model(shape=(28, 28, 3))
@@ -126,16 +132,18 @@ def test_generator():
         metrics=['accuracy'],
         optimizer='rmsprop')
     
-    model.fit_generator(
-        train_gen,
-        validation_data=val_gen,
-        steps_per_epoch=len(train_gen),
-        validation_steps=len(val_gen),
-        workers=10,
-        use_multiprocessing=True,
-        verbose=1,
-        epochs=1,
-      )
+    with TicToc():
+        model.fit_generator(
+            train_gen,
+            validation_data=val_gen,
+            steps_per_epoch=len(train_gen),
+            validation_steps=len(val_gen),
+            workers=os.cpu_count(),
+            use_multiprocessing=True,
+            max_queue_size=os.cpu_count(),
+            verbose=1,
+            epochs=1,
+          )
     
     assert True
 

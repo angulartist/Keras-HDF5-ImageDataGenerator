@@ -10,6 +10,8 @@ Sometimes you'd like to work with large scale image datasets that cannot fit int
 
 A more efficient way is to take advantage of HDF5 data structure which is optimized for I/O operations. The idea is to (1) store your raw images (and their labels) to an HDF5 file, and to (2) create a generator that will load and preprocess mini-batches in real-time.
 
+This image generator is built on top of Keras `Sequence` class and it's safe for multiprocessing.
+
 Installation / Usage
 --------------------
 
@@ -20,7 +22,7 @@ To install use pip:
 Contributing
 ------------
 
-michel @angulartist
+Feel free to PR any change/request. :grin:
 
 Example
 -------
@@ -67,8 +69,7 @@ my_augmenter = Compose([
         RandomContrast(limit=0.2, p=0.5),
         RandomGamma(gamma_limit=(80, 120), p=0.5),
         RandomBrightness(limit=0.2, p=0.5),
-        Resize(227, 227, cv2.INTER_AREA)
-    ])
+        Resize(227, 227, cv2.INTER_AREA)])
     
 train_generator = HDF5ImageGenerator(
         src='path/to/train.h5',
