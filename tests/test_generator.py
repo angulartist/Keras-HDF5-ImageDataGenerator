@@ -35,7 +35,7 @@ def create_generator(
     ]) if augmenter else False
     
     gen = HDF5ImageGenerator(
-        src='../../storage/datasets/mnist_test.h5',
+        src='/storage/datasets/mnist_train.h5',
         num_classes=num_classes,
         scaler=True,
         labels_encoding=labels_encoding_mode,
@@ -54,6 +54,49 @@ def create_sequential_model(num_classes=2, shape=(227, 227, 3)):
     model.add(Dense(num_classes, activation='softmax'))
     
     return model
+
+def create_conv_model():
+    from keras.models import Model
+    from keras import Input
+    from keras import layers
+
+    class CustomNet(object):
+        @staticmethod
+        def build(width=28, height=28, num_classes=10, depth=1):
+            input_shape = (height, width, depth)
+            chan_dim = -1
+
+            input_tensor = Input(shape=input_shape)
+            x = layers.SeparableConv2D(64,  (5, 5), padding='same', activation='relu')(input_tensor)
+            x = layers.SeparableConv2D(128, (5, 5), padding='same', activation='relu')(x)
+            x = layers.SeparableConv2D(128, (3, 3), padding='same', activation='relu')(x)
+            x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+            x = layers.Dropout(0.1)(x)
+
+            x = layers.SeparableConv2D(128, (3, 3), padding='same', activation='relu')(x)
+            x = layers.SeparableConv2D(128, (3, 3), padding='same', activation='relu')(x)
+            x = layers.SeparableConv2D(128, (3, 3), padding='same', activation='relu')(x)
+            x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+
+            '''
+            Flat the last output volume
+            into a column vector
+            '''
+            x = layers.Flatten()(x)
+            x = layers.Dense(256, activation='relu')(x)
+            x = layers.BatchNormalization(axis=chan_dim)(x)
+
+            '''
+            Add a final fully connected layer:
+            There are as many neurons as there are outputs (10 -> [0..9])
+            '''
+            output_tensor = layers.Dense(num_classes, activation='softmax')(x)
+
+            model = Model(input_tensor, output_tensor)
+
+            return model
+        
+    return CustomNet().build()
 
 def labels_smoothing(y, factor=0.1):
     y *= (1 - factor)
@@ -132,9 +175,18 @@ def test_fit_generator():
     
     print('Max workers:', os.cpu_count())
     
-    train_gen   = create_generator(num_classes=10, batch_size=32, h=28, w=28)
-    val_gen     = create_generator(num_classes=10, batch_size=32, h=28, w=28)
-    model       = create_sequential_model(num_classes=10, shape=(28, 28, 1))
+    train_gen   = create_generator(
+        num_classes=10,
+        batch_size=128,
+        h=28, w=28,
+        augmenter=False)
+    val_gen     = create_generator(
+        num_classes=10,
+        batch_size=128,
+        h=28, w=28,
+        augmenter=False)
+    # model       = create_sequential_model(num_classes=10, shape=(28, 28, 1))
+    model       = create_conv_model()
         
     model.compile(
         loss='categorical_crossentropy',
@@ -158,7 +210,12 @@ def test_evaluate_generator():
     
     print('Max workers:', os.cpu_count())
     
-    eval_gen    = create_generator(num_classes=10, batch_size=32, h=28, w=28, augmenter=False)
+    eval_gen    = create_generator(
+        num_classes=10,
+        batch_size=32,
+        h=28, w=28,
+        augmenter=False)
+    
     model       = create_sequential_model(num_classes=10, shape=(28, 28, 1))
         
     model.compile(

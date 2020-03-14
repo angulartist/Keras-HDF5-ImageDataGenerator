@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from typing import Tuple
+from typing import Tuple, Union, Optional
 
 import h5py as h5
 
@@ -103,6 +103,8 @@ class HDF5ImageGenerator(Sequence):
                 'Received: %s' % mode)
         self.mode = mode
         
+        print('Mode:', self.mode)
+        
         if labels_encoding not in {'hot', 'smooth', False}:
             raise ValueError(
                 '`labels_encoding` should be `"hot"` '
@@ -147,23 +149,29 @@ class HDF5ImageGenerator(Sequence):
         with h5.File(self.src, 'r', libver='latest', swmr=True) as file:
             return file[dataset].shape[index]
         
-    def __get_dataset_items(self, dataset: str, indices: np.ndarray) -> np.ndarray:
-        """Get an h5py dataset items.
+    def __get_dataset_items(self,
+                            indices: np.ndarray,
+                            dataset: Optional[str] = None) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+        """Get an HDF5 dataset items.
         
         Arguments
         ---------
-        dataset : str
-            The dataset key.
         indices : ndarray, 
             The list of current batch indices.
+        dataset : str or None
+            The dataset key. If None, returns
+            a batch of (image tensors, labels).
          
         Returns
         -------
-        np.ndarray
-            An batch of elements.
+        np.ndarray or a tuple of ndarrays
+            A batch of samples.
         """
         with h5.File(self.src, 'r', libver='latest', swmr=True) as file:
-            return file[dataset][indices]
+            if dataset is not None:
+                return file[dataset][indices]
+            else:
+                return (file[self.X_key][indices], file[self.y_key][indices])
 
     def __len__(self):
         """Denotes the number of batches per epoch.
@@ -222,32 +230,6 @@ class HDF5ImageGenerator(Sequence):
             
         return batch_y
     
-    # TODO: Deprecated. 
-    @staticmethod
-    def apply_standardization(batch_X: np.ndarray) -> np.ndarray:
-        """Scale the pixel intensities.
-        
-        Scale the pixel intensities to the range [-1, 1],
-        with zero mean and unit variance.
-        Formula: z = (x - u) / s
-         
-         
-        Arguments
-        ---------
-        batch_X : np.ndarray
-            Batch of image tensors to be standardized.
-        
-        Returns
-        -------
-        np.ndarray
-            A batch of standardized image tensors.
-        """
-        batch_X  = batch_X.astype('float32')
-        batch_X -= np.mean(batch_X, keepdims=True)
-        batch_X /= (np.std(batch_X, keepdims=True) + 1e-6)
-                
-        return batch_X
-    
     @staticmethod
     def apply_normalization(batch_X: np.ndarray) -> np.ndarray:
         """Normalize the pixel intensities. 
@@ -280,7 +262,7 @@ class HDF5ImageGenerator(Sequence):
             4D tensor (num_samples, height, width, depth).
         """
         # Grab corresponding images from the HDF5 source file.
-        batch_X = self.__get_dataset_items(self.X_key, indices)
+        batch_X = self.__get_dataset_items(indices, self.X_key)
                                         
         # Shall we rescale features?
         if self.scaler:
@@ -302,12 +284,9 @@ class HDF5ImageGenerator(Sequence):
             A tuple containing a batch of image tensors
             and their associated labels.
         """
-        # Grab corresponding images from the HDF5 source file.
-        batch_X = self.__get_dataset_items(self.X_key, indices)
+        # Grab samples (tensors, labels) HDF5 source file.
+        (batch_X, batch_y) = self.__get_dataset_items(indices)
         
-        # Grab corresponding labels from the HDF5 source file.
-        batch_y = self.__get_dataset_items(self.y_key, indices)
-         
         # Shall we apply any data augmentation?
         if self.augmenter:
             batch_X = np.stack([
@@ -328,7 +307,7 @@ class HDF5ImageGenerator(Sequence):
                                         
         return (batch_X, batch_y)
 
-    def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]: 
+    def __getitem__(self, index: int) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """Generates a batch of data for the given index.
         
         Arguments
@@ -338,9 +317,10 @@ class HDF5ImageGenerator(Sequence):
             
         Returns
         -------
-        tuple of ndarrays
+        tuple of ndarrays or ndarray
             A tuple containing a batch of image tensors
-            and their associated labels.
+            and their associated labels (train) or
+            a tuple of image tensors (predict).
         """
         # Indices for the current batch.
         indices = np.sort(self.indices[index * self.batch_size : (index + 1) * self.batch_size])
@@ -356,6 +336,7 @@ class HDF5ImageGenerator(Sequence):
          
          If the shuffle parameter is set to True,
          image tensor indices will be shuffled.
+         (not available in test 'mode').
         """
-        if self.shuffle:
+        if self.mode is 'train' and self.shuffle:
             np.random.shuffle(self.indices)

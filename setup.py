@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-__version__ = '1.1.3'
+__version__ = '1.2.1'
 
 here = path.abspath(path.dirname(__file__))
 
@@ -27,12 +27,15 @@ setup(
     download_url='https://github.com/angulartist/hdf5generator/tarball/' + __version__,
     license='BSD',
     classifiers=[
-      'Development Status :: 3 - Alpha',
-      'Intended Audience :: Developers',
-      'Programming Language :: Python :: 3',
+      'Development Status :: 5 - Production/Stable',
+      'Intended Audience :: Science/Research',
+      'Programming Language :: Python :: 3.6'
     ],
     keywords='',
-    packages=find_packages(exclude=['doc', 'tests*']),
+    packages=find_packages(exclude=['doc',
+                                    'tests*',
+                                    'playground',
+                                    'examples']),
     include_package_data=True,
     author='@angulartist',
     install_requires=install_requires,
