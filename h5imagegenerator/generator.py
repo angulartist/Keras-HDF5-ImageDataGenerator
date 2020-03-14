@@ -114,7 +114,7 @@ class HDF5ImageGenerator(Sequence):
                 'Received: %s' % labels_encoding)
         self.labels_encoding = labels_encoding
         
-        if self.labels_encoding == 'smooth' and not (0 < smooth_factor <= 1):
+        if (self.labels_encoding == 'smooth') and not (0 < smooth_factor <= 1):
             raise ValueError('`"smooth"` labels encoding'
                              'must use a `"smooth_factor"`'
                              '< 0 smooth_factor <= 1')
@@ -335,8 +335,8 @@ class HDF5ImageGenerator(Sequence):
          at the end of each epoch.
          
          If the shuffle parameter is set to True,
-         image tensor indices will be shuffled.
+         image tensor indices will be shuffled (in-place).
          (not available in test 'mode').
         """
-        if self.mode is 'train' and self.shuffle:
+        if (self.mode == 'train') and self.shuffle:
             np.random.shuffle(self.indices)

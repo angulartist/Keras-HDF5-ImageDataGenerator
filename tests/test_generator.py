@@ -35,7 +35,7 @@ def create_generator(
     ]) if augmenter else False
     
     gen = HDF5ImageGenerator(
-        src='/storage/datasets/mnist_train.h5',
+        src='/storage/datasets/mnist_test.h5',
         num_classes=num_classes,
         scaler=True,
         labels_encoding=labels_encoding_mode,
@@ -185,8 +185,8 @@ def test_fit_generator():
         batch_size=128,
         h=28, w=28,
         augmenter=False)
-    # model       = create_sequential_model(num_classes=10, shape=(28, 28, 1))
-    model       = create_conv_model()
+    model       = create_sequential_model(num_classes=10, shape=(28, 28, 1))
+    #model       = create_conv_model()
         
     model.compile(
         loss='categorical_crossentropy',
