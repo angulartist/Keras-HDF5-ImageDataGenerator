@@ -33,7 +33,7 @@ def create_generator(
     ])
     
     gen = HDF5ImageGenerator(
-        src='../../storage/datasets/test.h5',
+        src='../../storage/datasets/c.h5',
         num_classes=num_classes,
         scaler=True,
         labels_encoding=labels_encoding_mode,
@@ -138,9 +138,9 @@ def test_generator():
             validation_data=val_gen,
             steps_per_epoch=len(train_gen),
             validation_steps=len(val_gen),
-            workers=os.cpu_count(),
+            workers=5,
             use_multiprocessing=True,
-            max_queue_size=os.cpu_count(),
+            max_queue_size=5,
             verbose=1,
             epochs=1,
           )

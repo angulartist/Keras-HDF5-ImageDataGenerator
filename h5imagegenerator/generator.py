@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import warnings
-
 from typing import Tuple
 
 import h5py as h5
