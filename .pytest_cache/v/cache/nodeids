@@ -1,0 +1,8 @@
+[
+  "tests/test_generator.py::test_generator",
+  "tests/test_generator.py::test_labels_encoding",
+  "tests/test_generator.py::test_normalization",
+  "tests/test_generator.py::test_standardization",
+  "tests/test_generator.py::test_len",
+  "tests/test_generator.py::test_get_next_batch"
+]
