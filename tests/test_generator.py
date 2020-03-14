@@ -19,8 +19,8 @@ import h5py as h5
 import cv2
         
 def create_generator(
-    num_classes=2,
-    batch_size=16,
+    num_classes=10,
+    batch_size=32,
     labels_encoding_mode='smooth',
     smooth_factor=0.1,
     h=227, w=227):
@@ -33,7 +33,7 @@ def create_generator(
     ])
     
     gen = HDF5ImageGenerator(
-        src='../../storage/datasets/c.h5',
+        src='../../storage/datasets/mnist_train.h5',
         num_classes=num_classes,
         scaler=True,
         labels_encoding=labels_encoding_mode,
@@ -115,17 +115,17 @@ def test_get_next_batch():
     
     X, y = gen[np.random.randint(10)]
         
-    assert X.shape == (32, 227, 227, 3), 'equals to 32, 227x227x3 images'
-    assert y.shape == (32, 2),           'equals to 32 labels (2 classes)'
+    assert X.shape == (32, 227, 227, 1), 'equals to 32, 227x227x1 images'
+    assert y.shape == (32, 10),           'equals to 32 labels (10 classes)'
 
 def test_generator():
     from pytictoc import TicToc
     
     print('Max workers:', os.cpu_count())
     
-    train_gen   = create_generator(batch_size=32, h=28, w=28)
-    val_gen     = create_generator(batch_size=32, h=28, w=28)
-    model       = create_sequential_model(shape=(28, 28, 3))
+    train_gen   = create_generator(num_classes=10, batch_size=32, h=28, w=28)
+    val_gen     = create_generator(num_classes=10, batch_size=32, h=28, w=28)
+    model       = create_sequential_model(num_classes=10, shape=(28, 28, 1))
         
     model.compile(
         loss='categorical_crossentropy',
@@ -138,9 +138,9 @@ def test_generator():
             validation_data=val_gen,
             steps_per_epoch=len(train_gen),
             validation_steps=len(val_gen),
-            workers=5,
+            workers=10,
             use_multiprocessing=True,
-            max_queue_size=5,
+            max_queue_size=os.cpu_count(),
             verbose=1,
             epochs=1,
           )
