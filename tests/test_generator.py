@@ -19,6 +19,8 @@ import h5py as h5
 import cv2
         
 def create_generator(
+    mode='train',
+    augmenter=True,
     num_classes=10,
     batch_size=32,
     labels_encoding_mode='smooth',
@@ -30,16 +32,17 @@ def create_generator(
         RandomGamma(gamma_limit=(80, 120), p=0.5),
         Resize(h, w, cv2.INTER_AREA),
         # ToFloat(max_value=255)
-    ])
+    ]) if augmenter else False
     
     gen = HDF5ImageGenerator(
-        src='../../storage/datasets/mnist_train.h5',
+        src='../../storage/datasets/mnist_test.h5',
         num_classes=num_classes,
         scaler=True,
         labels_encoding=labels_encoding_mode,
         smooth_factor=smooth_factor,
         batch_size=batch_size,
-        augmenter=my_augmenter)
+        augmenter=my_augmenter,
+        mode=mode)
 
     return gen
     
@@ -115,10 +118,16 @@ def test_get_next_batch():
     
     X, y = gen[np.random.randint(10)]
         
-    assert X.shape == (32, 227, 227, 1), 'equals to 32, 227x227x1 images'
-    assert y.shape == (32, 10),           'equals to 32 labels (10 classes)'
+    assert X.shape == (32, 227, 227, 1) and y.shape == (32, 10)
+    
+def test_get_next_batch_test():
+    gen = create_generator(batch_size=32, mode='test')
+    
+    X = gen[np.random.randint(10)]
+        
+    assert X.shape == (32, 28, 28, 1),  'equals to 32, 28x28x1 images'
 
-def test_generator():
+def test_fit_generator():
     from pytictoc import TicToc
     
     print('Max workers:', os.cpu_count())
@@ -136,13 +145,59 @@ def test_generator():
         model.fit_generator(
             train_gen,
             validation_data=val_gen,
-            steps_per_epoch=len(train_gen),
-            validation_steps=len(val_gen),
-            workers=10,
+            workers=os.cpu_count(),
             use_multiprocessing=True,
-            max_queue_size=os.cpu_count(),
             verbose=1,
-            epochs=1,
+            epochs=1
+          )
+    
+    assert True
+    
+def test_evaluate_generator():
+    from pytictoc import TicToc
+    
+    print('Max workers:', os.cpu_count())
+    
+    eval_gen    = create_generator(num_classes=10, batch_size=32, h=28, w=28, augmenter=False)
+    model       = create_sequential_model(num_classes=10, shape=(28, 28, 1))
+        
+    model.compile(
+        loss='categorical_crossentropy',
+        metrics=['accuracy'],
+        optimizer='rmsprop')
+    
+    with TicToc():
+        model.evaluate_generator(
+            eval_gen,
+            workers=os.cpu_count(),
+            use_multiprocessing=True,
+            verbose=1
+          )
+    
+    assert True
+    
+def test_predict_generator():
+    from pytictoc import TicToc
+    
+    print('Max workers:', os.cpu_count())
+    
+    test_gen    = create_generator(num_classes=10,
+                                   batch_size=32,
+                                   h=28, w=28,
+                                   mode='test')
+    model       = create_sequential_model(num_classes=10, shape=(28, 28, 1))
+        
+    model.compile(
+        loss='categorical_crossentropy',
+        metrics=['accuracy'],
+        optimizer='rmsprop')
+    
+    with TicToc():
+        model.predict_generator(
+            test_gen,
+            workers=os.cpu_count(),
+            use_multiprocessing=True,
+            verbose=1
           )
     
     assert True

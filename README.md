@@ -99,8 +99,6 @@ model.compile(
 model.fit_generator(
     train_generator,
     validation_data=val_generator,
-    steps_per_epoch=len(train_generator),
-    validation_steps=len(val_generator),
     workers=10,
     use_multiprocessing=True,
     verbose=1,

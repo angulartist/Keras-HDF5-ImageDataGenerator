@@ -48,10 +48,15 @@ class HDF5ImageGenerator(Sequence):
         smooth factor used by smooth
         labels encoding.
         Default is 0.1.
-    augmenter : albumentations Compose([]) Pipeline
+    augmenter : albumentations Compose([]) Pipeline or False
         An albumentations transformations pipeline
         to apply to each sample.
-        Default is None.
+        Default is False.
+    mode : str "train" or "test"
+        Model generator type. "train" is used for
+        fit_generator() and evaluate_generator.
+        "test" is used for predict_generator().
+        Default is "train".
         
     Notes
     -----
@@ -87,7 +92,16 @@ class HDF5ImageGenerator(Sequence):
                  scaler=True,
                  labels_encoding='hot',
                  smooth_factor=0.1,
-                 augmenter=None):
+                 augmenter=False,
+                 mode='train'):
+        
+        if mode not in {'train', 'test'}:
+            raise ValueError(
+                '`mode` should be `"train"`'
+                '(fit_generator() and evaluate_generator()) or'
+                '`"test"` (predict_generator().'
+                'Received: %s' % mode)
+        self.mode = mode
         
         if labels_encoding not in {'hot', 'smooth', False}:
             raise ValueError(
@@ -113,9 +127,9 @@ class HDF5ImageGenerator(Sequence):
         self.smooth_factor: float = smooth_factor
         self.augmenter: Any = augmenter
         
-        self.indices = np.arange(self.get_dataset_shape(self.X_key, 0))
+        self.indices = np.arange(self.__get_dataset_shape(self.X_key, 0))
         
-    def get_dataset_shape(self, dataset: str, index: int) -> Tuple[int, ...]:
+    def __get_dataset_shape(self, dataset: str, index: int) -> Tuple[int, ...]:
         """Get an h5py dataset shape.
         
         Arguments
@@ -133,7 +147,7 @@ class HDF5ImageGenerator(Sequence):
         with h5.File(self.src, 'r', libver='latest', swmr=True) as file:
             return file[dataset].shape[index]
         
-    def get_dataset_items(self, dataset: str, indices: np.ndarray) -> np.ndarray:
+    def __get_dataset_items(self, dataset: str, indices: np.ndarray) -> np.ndarray:
         """Get an h5py dataset items.
         
         Arguments
@@ -159,7 +173,7 @@ class HDF5ImageGenerator(Sequence):
         int
             The number of batches per epochs.
         """
-        return int(np.ceil(self.get_dataset_shape(self.X_key, 0) / float(self.batch_size)))
+        return int(np.ceil(self.__get_dataset_shape(self.X_key, 0) / float(self.batch_size)))
 
     @staticmethod
     def apply_labels_smoothing(batch_y: np.ndarray, factor: float) -> np.ndarray:
@@ -251,14 +265,36 @@ class HDF5ImageGenerator(Sequence):
             A batch of normalized image tensors.
         """
         return batch_X.astype('float32') / 255.0
-
-    def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]: 
-        """Generates a batch of data for the given index.
+    
+    def __next_batch_test(self, indices: np.ndarray) -> np.ndarray:
+        """Generates a batch of test data for the given indices.
         
         Arguments
         ---------
         index : int
-            The index for the current batch.
+            The index for the batch.
+            
+        Returns
+        -------
+        ndarray
+            4D tensor (num_samples, height, width, depth).
+        """
+        # Grab corresponding images from the HDF5 source file.
+        batch_X = self.__get_dataset_items(self.X_key, indices)
+                                        
+        # Shall we rescale features?
+        if self.scaler:
+            batch_X = self.apply_normalization(batch_X)
+                                        
+        return batch_X
+        
+    def __next_batch(self, indices: np.ndarray) -> Tuple[np.ndarray, np.ndarray]: 
+        """Generates a batch of train/val data for the given indices.
+        
+        Arguments
+        ---------
+        index : int
+            The index for the batch.
             
         Returns
         -------
@@ -266,17 +302,14 @@ class HDF5ImageGenerator(Sequence):
             A tuple containing a batch of image tensors
             and their associated labels.
         """
-        # Indices for the current batch.
-        inds = np.sort(self.indices[index * self.batch_size : (index + 1) * self.batch_size])
-
         # Grab corresponding images from the HDF5 source file.
-        batch_X = self.get_dataset_items(self.X_key, inds)
+        batch_X = self.__get_dataset_items(self.X_key, indices)
         
         # Grab corresponding labels from the HDF5 source file.
-        batch_y = self.get_dataset_items(self.y_key, inds)
+        batch_y = self.__get_dataset_items(self.y_key, indices)
          
         # Shall we apply any data augmentation?
-        if self.augmenter is not None:
+        if self.augmenter:
             batch_X = np.stack([
                 self.augmenter(image=x)['image'] for x in batch_X
             ], axis=0)
@@ -294,6 +327,28 @@ class HDF5ImageGenerator(Sequence):
                     else 0)
                                         
         return (batch_X, batch_y)
+
+    def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]: 
+        """Generates a batch of data for the given index.
+        
+        Arguments
+        ---------
+        index : int
+            The index for the current batch.
+            
+        Returns
+        -------
+        tuple of ndarrays
+            A tuple containing a batch of image tensors
+            and their associated labels.
+        """
+        # Indices for the current batch.
+        indices = np.sort(self.indices[index * self.batch_size : (index + 1) * self.batch_size])
+
+        return {
+            'train': self.__next_batch,
+            'test' : self.__next_batch_test
+        }[self.mode](indices)
     
     def on_epoch_end(self):
         """Triggered once at the very beginning as well as 
