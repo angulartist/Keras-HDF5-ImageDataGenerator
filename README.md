@@ -43,7 +43,8 @@ train_generator = HDF5ImageGenerator(
         num_classes=2,
         scaler=True,
         labels_encoding='hot',
-        batch_size=32)
+        batch_size=32,
+        mode='train')
 ```
 
 * **src**: the source HDF5 file
@@ -54,6 +55,7 @@ train_generator = HDF5ImageGenerator(
 * **labels_encoding**: set it to `hot` to convert integers labels to binary matrix (one hot encoding),
 set it to `smooth` to perform smooth encoding (default is `hot`)
 * **batch_size**: the number of samples to be generated at each iteration (default is `32`)
+* **mode**: 'train' to generate tuples of image samples and labels, 'test' to generate image samples only (default is `'train'`)
 
 Note: 
 
@@ -88,6 +90,8 @@ Note:
 
 (2) If you want to apply standardization (mean/std), you may want to use albumentations [Normalize](https://albumentations.readthedocs.io/en/latest/api/augmentations.html#albumentations.augmentations.transforms.Normalize) instead.
 
+(3) Make sure to turn off data augmentation (`augmenter=False`) when using `evaluate_generator()` and `predict_generator()`.
+
 Finally, pass the generator to your model:
 
 ```python
@@ -95,7 +99,8 @@ model.compile(
         loss='categorical_crossentropy',
         metrics=['accuracy'],
         optimizer='rmsprop')
-    
+
+# Example with fit:
 model.fit_generator(
     train_generator,
     validation_data=val_generator,
@@ -103,11 +108,13 @@ model.fit_generator(
     use_multiprocessing=True,
     verbose=1,
     epochs=1)
+    
+    
+# Example with evaluate:
+model.evaluate_generator(
+    eval_generator,
+    workers=10,
+    use_multiprocessing=True,
+    verbose=1,
+    epochs=1)
 ```
-
-TODO LIST
--------
-* [x] Generator
-* [] Docs
-* [] 
-* [] 
