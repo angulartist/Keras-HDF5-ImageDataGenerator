@@ -1,16 +1,16 @@
 Keras HDF5 ImageDataGenerator
 ===============================
 
-A dead simple Keras HDF5 ImageDataGenerator.
+A blazing fast HDF5 Image Generator for Keras :zap:
 
 Overview
 --------
 
-Sometimes you'd like to work with large scale image datasets that cannot fit into the memory. Keras provides data generators to feed your network with mini-batch of data directly from a directory, simply by passing the image paths. But this method is terribly inefficient because during training, the model has to deal with massive I/Os operations on disk which introduces huge latency.
+Sometimes you'd like to work with large scale image datasets that cannot fit into the memory. Luckily, Keras provides various data generators to feed your network with mini-batch of data directly from a directory, simply by passing the source path. But this method is terribly inefficient. During training, the model has to deal with massive I/Os operations on disk which introduces huge latency.
 
-A more efficient way is to take advantage of HDF5 data structure which is optimized for I/O operations. The idea is to (1) store your raw images (and their labels) to an HDF5 file, and to (2) create a generator that will load and preprocess mini-batches in real-time.
+A more efficient way is to take advantage of HDF5 data structure which is optimized for I/O operations. The idea is to (1) store your raw images and their labels to an HDF5 file, and to (2) create a generator that will load and preprocess mini-batches in real-time.
 
-This image generator is built on top of Keras `Sequence` class and it's safe for multiprocessing.
+This image generator is built on top of Keras `Sequence` class and it's safe for multiprocessing. It's also using the super-fast image-processing albumentations library.
 
 Installation / Usage
 --------------------
@@ -18,6 +18,13 @@ Installation / Usage
 To install use pip:
 
     $ pip install h5imagegenerator
+    
+Dependencies
+------------
+* Keras
+* Numpy
+* Albumentations
+* h5py
     
 Contributing
 ------------
