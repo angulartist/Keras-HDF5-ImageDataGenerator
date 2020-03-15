@@ -47,7 +47,6 @@ train_generator = HDF5ImageGenerator(
         src='path/to/train.h5',
         X_key='images,
         y_key='labels,
-        num_classes=2,
         scaler=True,
         labels_encoding='hot',
         batch_size=32,
@@ -57,7 +56,6 @@ train_generator = HDF5ImageGenerator(
 * **src**: the source HDF5 file
 * **X_key**: the key of the image tensors dataset (default is `images`)
 * **y_key**: the key of the labels dataset (default is `labels`)
-* **num_classes**: the total number of classes
 * **scaler**: scale inputs to the range [0, 1] (basic normalization) (default is `True`)
 * **labels_encoding**: set it to `hot` to convert integers labels to binary matrix (one hot encoding),
 set it to `smooth` to perform smooth encoding (default is `hot`)
@@ -84,7 +82,6 @@ train_generator = HDF5ImageGenerator(
         src='path/to/train.h5',
         X_key='images,
         y_key='labels,
-        num_classes=2,
         scaler=True,
         labels_encoding='hot',
         batch_size=32,

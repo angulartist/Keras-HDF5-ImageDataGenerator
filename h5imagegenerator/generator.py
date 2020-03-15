@@ -23,9 +23,6 @@ class HDF5ImageGenerator(Sequence):
     ---------
     src : str
         Path of the hdf5 source file.
-    num_classes : int
-        Total number of classes.
-        Default is 2.
     X_key : str
         Key of the h5 file image tensors dataset.
         Default is "images".
@@ -88,7 +85,6 @@ class HDF5ImageGenerator(Sequence):
     """
     def __init__(self,
                  src,
-                 num_classes=2,
                  X_key='images',
                  y_key='labels',
                  batch_size=32,
@@ -131,7 +127,6 @@ class HDF5ImageGenerator(Sequence):
         self.augmenter = augmenter
             
         self.src: str = src
-        self.num_classes: int = num_classes
         self.X_key: str = X_key
         self.y_key: str = y_key
         self.batch_size: int = batch_size
@@ -233,7 +228,7 @@ class HDF5ImageGenerator(Sequence):
         np.ndarray
             A binary class matrix.
         """
-        batch_y = to_categorical(batch_y, num_classes=self.num_classes)
+        batch_y = to_categorical(batch_y)
         
         if smooth_factor > 0:
             batch_y = self.apply_labels_smoothing(batch_y, factor=smooth_factor)
