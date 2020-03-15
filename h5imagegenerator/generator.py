@@ -3,11 +3,15 @@ from __future__ import absolute_import
 from typing import Tuple, Union, Optional
 
 import h5py as h5
-
 from keras.utils import Sequence
 from keras.utils import to_categorical
+
+from albumentations import Compose
 import numpy as np
 
+available_modes = {'train', 'test'}
+available_labels_encoding = {'hot', 'smooth', False}
+    
 class HDF5ImageGenerator(Sequence):
     """Just a simple custom Keras HDF5 ImageDataGenerator.
     
@@ -95,17 +99,15 @@ class HDF5ImageGenerator(Sequence):
                  augmenter=False,
                  mode='train'):
         
-        if mode not in {'train', 'test'}:
+        if mode not in available_modes:
             raise ValueError(
                 '`mode` should be `"train"`'
                 '(fit_generator() and evaluate_generator()) or'
                 '`"test"` (predict_generator().'
                 'Received: %s' % mode)
         self.mode = mode
-        
-        print('Mode:', self.mode)
-        
-        if labels_encoding not in {'hot', 'smooth', False}:
+                
+        if labels_encoding not in available_labels_encoding:
             raise ValueError(
                 '`labels_encoding` should be `"hot"` '
                 '(classic binary matrix) or '
@@ -115,10 +117,19 @@ class HDF5ImageGenerator(Sequence):
         self.labels_encoding = labels_encoding
         
         if (self.labels_encoding == 'smooth') and not (0 < smooth_factor <= 1):
-            raise ValueError('`"smooth"` labels encoding'
-                             'must use a `"smooth_factor"`'
-                             '< 0 smooth_factor <= 1')
+            raise ValueError(
+                '`"smooth"` labels encoding'
+                'must use a `"smooth_factor"`'
+                '< 0 smooth_factor <= 1')
         
+        if augmenter and not isinstance(augmenter, Compose):
+             raise ValueError(
+                 '`augmenter` argument'
+                 'must be an instance of albumentations'
+                 '`Compose` class.'
+                 'Received type: %s' % type(augmenter))
+        self.augmenter = augmenter
+            
         self.src: str = src
         self.num_classes: int = num_classes
         self.X_key: str = X_key
@@ -127,7 +138,6 @@ class HDF5ImageGenerator(Sequence):
         self.shuffle: bool = shuffle
         self.scaler: bool = scaler
         self.smooth_factor: float = smooth_factor
-        self.augmenter: Any = augmenter
         
         self.indices = np.arange(self.__get_dataset_shape(self.X_key, 0))
         
@@ -330,13 +340,16 @@ class HDF5ImageGenerator(Sequence):
             'test' : self.__next_batch_test
         }[self.mode](indices)
     
-    def on_epoch_end(self):
-        """Triggered once at the very beginning as well as 
-         at the end of each epoch.
-         
-         If the shuffle parameter is set to True,
-         image tensor indices will be shuffled (in-place).
+    def __shuffle_indices(self):
+        """If the shuffle parameter is set to True,
+         dataset will be shuffled (in-place).
          (not available in test 'mode').
         """
         if (self.mode == 'train') and self.shuffle:
             np.random.shuffle(self.indices)
+    
+    def on_epoch_end(self):
+        """Triggered once at the very beginning as well as 
+         at the end of each epoch.
+        """
+        self.__shuffle_indices()
