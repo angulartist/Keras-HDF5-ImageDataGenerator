@@ -66,7 +66,7 @@ Note:
 
 (1) When using `smooth` labels_encoding, you should provides a **smooth_factor** (defaults to `0.1`).
 
-(2) Labels stored in the HDF5 file must be integers or lists/tuples for integers in case you're doing multi-labels classification. ie: `labels=[1, 2, 3, 6, 9] or labels=[(1, 2), (5, 9), (3, 9)]`...
+(2) Labels stored in the HDF5 file must be integers or list of lists/tuples of integers in case you're doing multi-labels classification. ie: `labels=[1, 2, 3, 6, 9] or labels=[(1, 2), (5, 9), (3, 9)]`...
 
 Sometimes you'd like to perform some data augmentation on-the-fly, to flip, zoom, rotate or scale images. You can pass to the generator an [albumentations](https://github.com/albumentations-team/albumentations) transformation pipeline:
 
