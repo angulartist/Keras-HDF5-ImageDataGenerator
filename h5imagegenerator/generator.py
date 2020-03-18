@@ -9,9 +9,10 @@ from keras.utils import to_categorical
 from albumentations import Compose
 import numpy as np
 
-available_modes = {'train', 'test'}
-available_labels_encoding = {'hot', 'smooth', False}
-    
+available_modes = {"train", "test"}
+available_labels_encoding = {"hot", "smooth", False}
+
+
 class HDF5ImageGenerator(Sequence):
     """Just a simple custom Keras HDF5 ImageDataGenerator.
     
@@ -83,49 +84,56 @@ class HDF5ImageGenerator(Sequence):
          augmenter=my_augmenter)
     ```
     """
-    def __init__(self,
-                 src,
-                 X_key='images',
-                 y_key='labels',
-                 batch_size=32,
-                 shuffle=True,
-                 scaler=True,
-                 labels_encoding='hot',
-                 smooth_factor=0.1,
-                 augmenter=False,
-                 mode='train'):
-        
+
+    def __init__(
+        self,
+        src,
+        X_key="images",
+        y_key="labels",
+        batch_size=32,
+        shuffle=True,
+        scaler=True,
+        labels_encoding="hot",
+        smooth_factor=0.1,
+        augmenter=False,
+        mode="train",
+    ):
+
         if mode not in available_modes:
             raise ValueError(
                 '`mode` should be `"train"`'
-                '(fit_generator() and evaluate_generator()) or'
+                "(fit_generator() and evaluate_generator()) or"
                 '`"test"` (predict_generator().'
-                'Received: %s' % mode)
+                "Received: %s" % mode
+            )
         self.mode = mode
-                
+
         if labels_encoding not in available_labels_encoding:
             raise ValueError(
                 '`labels_encoding` should be `"hot"` '
-                '(classic binary matrix) or '
+                "(classic binary matrix) or "
                 '`"smooth"` (smooth encoding) or '
-                'False (no labels encoding).'
-                'Received: %s' % labels_encoding)
+                "False (no labels encoding)."
+                "Received: %s" % labels_encoding
+            )
         self.labels_encoding = labels_encoding
-        
-        if (self.labels_encoding == 'smooth') and not (0 < smooth_factor <= 1):
+
+        if (self.labels_encoding == "smooth") and not (0 < smooth_factor <= 1):
             raise ValueError(
                 '`"smooth"` labels encoding'
                 'must use a `"smooth_factor"`'
-                '< 0 smooth_factor <= 1')
-        
+                "< 0 smooth_factor <= 1"
+            )
+
         if augmenter and not isinstance(augmenter, Compose):
-             raise ValueError(
-                 '`augmenter` argument'
-                 'must be an instance of albumentations'
-                 '`Compose` class.'
-                 'Received type: %s' % type(augmenter))
+            raise ValueError(
+                "`augmenter` argument"
+                "must be an instance of albumentations"
+                "`Compose` class."
+                "Received type: %s" % type(augmenter)
+            )
         self.augmenter = augmenter
-            
+
         self.src: str = src
         self.X_key: str = X_key
         self.y_key: str = y_key
@@ -133,9 +141,9 @@ class HDF5ImageGenerator(Sequence):
         self.shuffle: bool = shuffle
         self.scaler: bool = scaler
         self.smooth_factor: float = smooth_factor
-        
+
         self.indices = np.arange(self.__get_dataset_shape(self.X_key, 0))
-        
+
     def __get_dataset_shape(self, dataset: str, index: int) -> Tuple[int, ...]:
         """Get an h5py dataset shape.
         
@@ -151,12 +159,12 @@ class HDF5ImageGenerator(Sequence):
         tuple of ints
             A tuple of array dimensions.
         """
-        with h5.File(self.src, 'r', libver='latest', swmr=True) as file:
+        with h5.File(self.src, "r", libver="latest", swmr=True) as file:
             return file[dataset].shape[index]
-        
-    def __get_dataset_items(self,
-                            indices: np.ndarray,
-                            dataset: Optional[str] = None) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+
+    def __get_dataset_items(
+        self, indices: np.ndarray, dataset: Optional[str] = None
+    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """Get an HDF5 dataset items.
         
         Arguments
@@ -173,7 +181,7 @@ class HDF5ImageGenerator(Sequence):
         np.ndarray or a tuple of ndarrays
             A batch of samples.
         """
-        with h5.File(self.src, 'r', libver='latest', swmr=True) as file:
+        with h5.File(self.src, "r", libver="latest", swmr=True) as file:
             if dataset is not None:
                 return file[dataset][indices]
             else:
@@ -187,7 +195,9 @@ class HDF5ImageGenerator(Sequence):
         int
             The number of batches per epochs.
         """
-        return int(np.ceil(self.__get_dataset_shape(self.X_key, 0) / float(self.batch_size)))
+        return int(
+            np.ceil(self.__get_dataset_shape(self.X_key, 0) / float(self.batch_size))
+        )
 
     @staticmethod
     def apply_labels_smoothing(batch_y: np.ndarray, factor: float) -> np.ndarray:
@@ -206,14 +216,14 @@ class HDF5ImageGenerator(Sequence):
         np.ndarray
             A binary class matrix.
         """
-        batch_y *= (1 - factor)
-        batch_y += (factor / batch_y.shape[1])
+        batch_y *= 1 - factor
+        batch_y += factor / batch_y.shape[1]
 
         return batch_y
 
-    def apply_labels_encoding(self,
-                              batch_y: np.ndarray,
-                              smooth_factor: Optional[float] = None) -> np.ndarray:
+    def apply_labels_encoding(
+        self, batch_y: np.ndarray, smooth_factor: Optional[float] = None
+    ) -> np.ndarray:
         """Converts a class vector (integers) to binary class matrix.
          See Keras to_categorical utils function.
          
@@ -231,12 +241,12 @@ class HDF5ImageGenerator(Sequence):
             A binary class matrix.
         """
         batch_y = to_categorical(batch_y)
-        
+
         if smooth_factor is not None:
             batch_y = self.apply_labels_smoothing(batch_y, factor=smooth_factor)
-            
+
         return batch_y
-    
+
     @staticmethod
     def apply_normalization(batch_X: np.ndarray) -> np.ndarray:
         """Normalize the pixel intensities. 
@@ -253,8 +263,8 @@ class HDF5ImageGenerator(Sequence):
         np.ndarray
             A batch of normalized image tensors.
         """
-        return batch_X.astype('float32') / 255.0
-    
+        return batch_X.astype("float32") / 255.0
+
     def __next_batch_test(self, indices: np.ndarray) -> np.ndarray:
         """Generates a batch of test data for the given indices.
         
@@ -270,14 +280,14 @@ class HDF5ImageGenerator(Sequence):
         """
         # Grab corresponding images from the HDF5 source file.
         batch_X = self.__get_dataset_items(indices, self.X_key)
-                                        
+
         # Shall we rescale features?
         if self.scaler:
             batch_X = self.apply_normalization(batch_X)
-                                        
+
         return batch_X
-        
-    def __next_batch(self, indices: np.ndarray) -> Tuple[np.ndarray, np.ndarray]: 
+
+    def __next_batch(self, indices: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """Generates a batch of train/val data for the given indices.
         
         Arguments
@@ -293,27 +303,31 @@ class HDF5ImageGenerator(Sequence):
         """
         # Grab samples (tensors, labels) HDF5 source file.
         (batch_X, batch_y) = self.__get_dataset_items(indices)
-        
+
         # Shall we apply any data augmentation?
         if self.augmenter:
-            batch_X = np.stack([
-                self.augmenter(image=x)['image'] for x in batch_X
-            ], axis=0)
-                                        
+            batch_X = np.stack(
+                [self.augmenter(image=x)["image"] for x in batch_X], axis=0
+            )
+
         # Shall we rescale features?
         if self.scaler:
             batch_X = self.apply_normalization(batch_X)
-            
+
         # Shall we apply labels encoding?
         if self.labels_encoding:
-            batch_y = self.apply_labels_encoding(batch_y,
-                smooth_factor = self.smooth_factor
-                    if self.labels_encoding == 'smooth'
-                    else None)
-                                        
+            batch_y = self.apply_labels_encoding(
+                batch_y,
+                smooth_factor=self.smooth_factor
+                if self.labels_encoding == "smooth"
+                else None,
+            )
+
         return (batch_X, batch_y)
 
-    def __getitem__(self, index: int) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def __getitem__(
+        self, index: int
+    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """Generates a batch of data for the given index.
         
         Arguments
@@ -329,21 +343,22 @@ class HDF5ImageGenerator(Sequence):
             a tuple of image tensors (predict).
         """
         # Indices for the current batch.
-        indices = np.sort(self.indices[index * self.batch_size : (index + 1) * self.batch_size])
+        indices = np.sort(
+            self.indices[index * self.batch_size : (index + 1) * self.batch_size]
+        )
 
-        return {
-            'train': self.__next_batch,
-            'test' : self.__next_batch_test
-        }[self.mode](indices)
-    
+        return {"train": self.__next_batch, "test": self.__next_batch_test}[self.mode](
+            indices
+        )
+
     def __shuffle_indices(self):
         """If the shuffle parameter is set to True,
          dataset will be shuffled (in-place).
          (not available in test 'mode').
         """
-        if (self.mode == 'train') and self.shuffle:
+        if (self.mode == "train") and self.shuffle:
             np.random.shuffle(self.indices)
-    
+
     def on_epoch_end(self):
         """Triggered once at the very beginning as well as 
          at the end of each epoch.
