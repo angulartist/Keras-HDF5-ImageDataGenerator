@@ -347,9 +347,10 @@ class HDF5ImageGenerator(Sequence):
             self.indices[index * self.batch_size : (index + 1) * self.batch_size]
         )
 
-        return {"train": self.__next_batch, "test": self.__next_batch_test}[self.mode](
-            indices
-        )
+        if self.mode == "train":
+            return self.__next_batch(indices)
+        else:
+            return self.__next_batch_test(indices)
 
     def __shuffle_indices(self):
         """If the shuffle parameter is set to True,
