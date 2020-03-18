@@ -9,7 +9,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import to_categorical
 from keras.models import Sequential, Model
 from keras.layers import Dense, Input, SeparableConv2D, Flatten
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, MultiLabelBinarizer
 from albumentations import (
     Compose, HorizontalFlip, RandomGamma,
     ToFloat, Resize
@@ -21,7 +21,6 @@ import cv2
 def create_generator(
     mode='train',
     augmenter=True,
-    num_classes=10,
     batch_size=32,
     labels_encoding_mode='smooth',
     smooth_factor=0.1,
@@ -36,7 +35,6 @@ def create_generator(
     
     gen = HDF5ImageGenerator(
         src='/storage/datasets/mnist_test.h5',
-        num_classes=num_classes,
         scaler=True,
         labels_encoding=labels_encoding_mode,
         smooth_factor=smooth_factor,
@@ -46,7 +44,7 @@ def create_generator(
 
     return gen
     
-def create_sequential_model(num_classes=2, shape=(227, 227, 3)):    
+def create_sequential_model(num_classes=10, shape=(227, 227, 3)):    
     model = Sequential()
     model.add(SeparableConv2D(32,  (5, 5), input_shape=shape, padding='same', activation='relu'))
     model.add(Flatten())
@@ -110,20 +108,17 @@ def test_labels_encoding():
     le = LabelEncoder()
     scalar_labels = le.fit_transform(y)
 
-    gen = create_generator(num_classes=len(classes))
+    gen = create_generator()
     binary_matrix = gen.apply_labels_encoding(scalar_labels)
     smooth_binary_matrix = gen.apply_labels_encoding(scalar_labels, 0.1)
     
-    assert np.array_equal(
-        to_categorical(scalar_labels, num_classes=len(classes)),
-        binary_matrix)
+    assert np.array_equal(to_categorical(scalar_labels), binary_matrix)
     'generated binary matrix should be equal to the output of to_categorical'
     
     assert np.array_equal(
-        labels_smoothing(to_categorical(scalar_labels,num_classes=len(classes)), 0.1),
+        labels_smoothing(to_categorical(scalar_labels), 0.1),
         smooth_binary_matrix)
     'same with labels smoothing'
-
     
 def test_normalization():
     X = np.array([
@@ -173,19 +168,19 @@ def test_get_next_batch_test():
 def test_fit_generator():
     from pytictoc import TicToc
     
+    np.random.seed(42)
+    
     print('Max workers:', os.cpu_count())
     
     train_gen   = create_generator(
-        num_classes=10,
         batch_size=128,
         h=28, w=28,
         augmenter=False)
     val_gen     = create_generator(
-        num_classes=10,
         batch_size=128,
         h=28, w=28,
         augmenter=False)
-    model       = create_sequential_model(num_classes=10, shape=(28, 28, 1))
+    model       = create_sequential_model(shape=(28, 28, 1))
     #model       = create_conv_model()
         
     model.compile(
@@ -211,12 +206,11 @@ def test_evaluate_generator():
     print('Max workers:', os.cpu_count())
     
     eval_gen    = create_generator(
-        num_classes=10,
         batch_size=32,
         h=28, w=28,
         augmenter=False)
     
-    model       = create_sequential_model(num_classes=10, shape=(28, 28, 1))
+    model       = create_sequential_model(shape=(28, 28, 1))
         
     model.compile(
         loss='categorical_crossentropy',
@@ -238,11 +232,10 @@ def test_predict_generator():
     
     print('Max workers:', os.cpu_count())
     
-    test_gen    = create_generator(num_classes=10,
-                                   batch_size=32,
+    test_gen    = create_generator(batch_size=32,
                                    h=28, w=28,
                                    mode='test')
-    model       = create_sequential_model(num_classes=10, shape=(28, 28, 1))
+    model       = create_sequential_model(shape=(28, 28, 1))
         
     model.compile(
         loss='categorical_crossentropy',

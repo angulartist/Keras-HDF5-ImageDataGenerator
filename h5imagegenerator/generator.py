@@ -163,9 +163,10 @@ class HDF5ImageGenerator(Sequence):
         ---------
         indices : ndarray, 
             The list of current batch indices.
-        dataset : str or None
+        dataset : (optional) str
             The dataset key. If None, returns
             a batch of (image tensors, labels).
+            Defaults to None.
          
         Returns
         -------
@@ -212,7 +213,7 @@ class HDF5ImageGenerator(Sequence):
 
     def apply_labels_encoding(self,
                               batch_y: np.ndarray,
-                              smooth_factor: float = 0.0) -> np.ndarray:
+                              smooth_factor: Optional[float] = None) -> np.ndarray:
         """Converts a class vector (integers) to binary class matrix.
          See Keras to_categorical utils function.
          
@@ -220,8 +221,9 @@ class HDF5ImageGenerator(Sequence):
         ---------
         batch_y : np.ndarray
             Current batch integer labels.
-        smooth_factor : Int or Float
+        smooth_factor : (optional) Float
             Smooth factor.
+            Defaults to None.
         
         Returns
         -------
@@ -230,7 +232,7 @@ class HDF5ImageGenerator(Sequence):
         """
         batch_y = to_categorical(batch_y)
         
-        if smooth_factor > 0:
+        if smooth_factor is not None:
             batch_y = self.apply_labels_smoothing(batch_y, factor=smooth_factor)
             
         return batch_y
@@ -304,11 +306,10 @@ class HDF5ImageGenerator(Sequence):
             
         # Shall we apply labels encoding?
         if self.labels_encoding:
-            batch_y = self.apply_labels_encoding(
-                batch_y,
+            batch_y = self.apply_labels_encoding(batch_y,
                 smooth_factor = self.smooth_factor
                     if self.labels_encoding == 'smooth'
-                    else 0)
+                    else None)
                                         
         return (batch_X, batch_y)
 

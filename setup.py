@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-__version__ = '1.2.2'
+__version__ = '1.2.4'
 
 here = path.abspath(path.dirname(__file__))
 
@@ -23,8 +23,8 @@ setup(
     description='A dead simple Keras HDF5 ImageDataGenerator',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/angulartist/hdf5generator',
-    download_url='https://github.com/angulartist/hdf5generator/tarball/' + __version__,
+    url='https://github.com/angulartist/Keras-HDF5-ImageDataGenerator',
+    download_url='https://github.com/angulartist/Keras-HDF5-ImageDataGenerator/tarball/' + __version__,
     license='BSD',
     classifiers=[
       'Development Status :: 5 - Production/Stable',

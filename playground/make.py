@@ -45,9 +45,9 @@ class HDF5ImageWriter(object):
 
         self.db.close()
 
-writer = HDF5ImageWriter(src='/storage/datasets/mnist_train.h5', dims=(len(X_train), 28, 28, 1))
+writer = HDF5ImageWriter(src='/storage/datasets/mnist_test.h5', dims=(len(X_test), 28, 28, 1))
 
-for (i, (x, y)) in enumerate(zip(X_train, y_train)):
+for (i, (x, y)) in enumerate(zip(X_test, y_test)):
     writer.add([x], [y])
     
     if i % 1024 == 0:
