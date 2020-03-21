@@ -143,6 +143,10 @@ class HDF5ImageGenerator(Sequence):
         self.smooth_factor: float = smooth_factor
 
         self.indices = np.arange(self.__get_dataset_shape(self.X_key, 0))
+        
+    def __repr__(self):
+        """Representation of the class."""
+        return f"{self.__class__.__name__}({self.__dict__!r})"
 
     def __get_dataset_shape(self, dataset: str, index: int) -> Tuple[int, ...]:
         """Get an h5py dataset shape.
