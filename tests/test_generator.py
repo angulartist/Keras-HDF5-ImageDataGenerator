@@ -27,17 +27,12 @@ def create_generator(
 ):
 
     my_augmenter = (
-        Compose(
-            [
-                HorizontalFlip(p=0.5),
-                RandomGamma(gamma_limit=(80, 120), p=0.5),
-                Resize(h, w, cv2.INTER_AREA),
-                # ToFloat(max_value=255)
-            ]
-        )
-        if augmenter
-        else False
-    )
+        Compose([
+            HorizontalFlip(p=0.5),
+            RandomGamma(gamma_limit=(80, 120), p=0.5),
+            Resize(h, w, cv2.INTER_AREA),
+            # ToFloat(max_value=255)
+        ]) if augmenter else False)
 
     gen = HDF5ImageGenerator(
         src="/storage/datasets/mnist_test.h5",
@@ -55,10 +50,10 @@ def create_generator(
 def create_sequential_model(num_classes=10, shape=(227, 227, 3)):
     model = Sequential()
     model.add(
-        SeparableConv2D(
-            32, (5, 5), input_shape=shape, padding="same", activation="relu"
-        )
-    )
+        SeparableConv2D(32, (5, 5),
+                        input_shape=shape,
+                        padding="same",
+                        activation="relu"))
     model.add(Flatten())
     model.add(Dense(32, activation="relu"))
     model.add(Dense(num_classes, activation="softmax"))
@@ -78,29 +73,28 @@ def create_conv_model():
             chan_dim = -1
 
             input_tensor = Input(shape=input_shape)
-            x = layers.SeparableConv2D(64, (5, 5), padding="same", activation="relu")(
-                input_tensor
-            )
-            x = layers.SeparableConv2D(128, (5, 5), padding="same", activation="relu")(
-                x
-            )
-            x = layers.SeparableConv2D(128, (3, 3), padding="same", activation="relu")(
-                x
-            )
+            x = layers.SeparableConv2D(64, (5, 5),
+                                       padding="same",
+                                       activation="relu")(input_tensor)
+            x = layers.SeparableConv2D(128, (5, 5),
+                                       padding="same",
+                                       activation="relu")(x)
+            x = layers.SeparableConv2D(128, (3, 3),
+                                       padding="same",
+                                       activation="relu")(x)
             x = layers.MaxPooling2D(pool_size=(2, 2))(x)
             x = layers.Dropout(0.1)(x)
 
-            x = layers.SeparableConv2D(128, (3, 3), padding="same", activation="relu")(
-                x
-            )
-            x = layers.SeparableConv2D(128, (3, 3), padding="same", activation="relu")(
-                x
-            )
-            x = layers.SeparableConv2D(128, (3, 3), padding="same", activation="relu")(
-                x
-            )
+            x = layers.SeparableConv2D(128, (3, 3),
+                                       padding="same",
+                                       activation="relu")(x)
+            x = layers.SeparableConv2D(128, (3, 3),
+                                       padding="same",
+                                       activation="relu")(x)
+            x = layers.SeparableConv2D(128, (3, 3),
+                                       padding="same",
+                                       activation="relu")(x)
             x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-
             """
             Flat the last output volume
             into a column vector
@@ -108,7 +102,6 @@ def create_conv_model():
             x = layers.Flatten()(x)
             x = layers.Dense(256, activation="relu")(x)
             x = layers.BatchNormalization(axis=chan_dim)(x)
-
             """
             Add a final fully connected layer:
             There are as many neurons as there are outputs (10 -> [0..9])
@@ -142,24 +135,26 @@ def test_labels_encoding():
     assert np.array_equal(to_categorical(scalar_labels), binary_matrix)
     "generated binary matrix should be equal to the output of to_categorical"
 
-    assert np.array_equal(
-        labels_smoothing(to_categorical(scalar_labels), 0.1), smooth_binary_matrix
-    )
+    assert np.array_equal(labels_smoothing(to_categorical(scalar_labels), 0.1),
+                          smooth_binary_matrix)
     "same with labels smoothing"
 
 
 def test_normalization():
-    X = np.array([[100, 200, 127], [75, 225, 127], [50, 250, 127], [25, 255, 127]])
+    X = np.array([[100, 200, 127], [75, 225, 127], [50, 250, 127],
+                  [25, 255, 127]])
     test_X = X.astype("float32") / 255.0
 
     gen = create_generator()
     normalized_X = gen.apply_normalization(X)
 
-    assert np.array_equal(normalized_X, test_X), "normalized_X is in the range [0, 1]"
+    assert np.array_equal(normalized_X,
+                          test_X), "normalized_X is in the range [0, 1]"
 
 
 def deprecated_test_standardization():
-    X = np.array([[100, 200, 127], [75, 225, 127], [50, 250, 127], [25, 255, 127]])
+    X = np.array([[100, 200, 127], [75, 225, 127], [50, 250, 127],
+                  [25, 255, 127]])
 
     gen = create_generator()
     std_X = gen.apply_standardization(X)
@@ -199,9 +194,9 @@ def test_fit_generator():
     model = create_sequential_model(shape=(28, 28, 1))
     # model       = create_conv_model()
 
-    model.compile(
-        loss="categorical_crossentropy", metrics=["accuracy"], optimizer="rmsprop"
-    )
+    model.compile(loss="categorical_crossentropy",
+                  metrics=["accuracy"],
+                  optimizer="rmsprop")
 
     with TicToc():
         model.fit_generator(
@@ -224,14 +219,15 @@ def test_predict_generator():
     test_gen = create_generator(batch_size=32, h=28, w=28, mode="test")
     model = create_sequential_model(shape=(28, 28, 1))
 
-    model.compile(
-        loss="categorical_crossentropy", metrics=["accuracy"], optimizer="rmsprop"
-    )
+    model.compile(loss="categorical_crossentropy",
+                  metrics=["accuracy"],
+                  optimizer="rmsprop")
 
     with TicToc():
-        model.predict_generator(
-            test_gen, workers=os.cpu_count(), use_multiprocessing=True, verbose=1
-        )
+        model.predict_generator(test_gen,
+                                workers=os.cpu_count(),
+                                use_multiprocessing=True,
+                                verbose=1)
 
     assert True
 

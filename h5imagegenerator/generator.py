@@ -84,7 +84,6 @@ class HDF5ImageGenerator(Sequence):
          augmenter=my_augmenter)
     ```
     """
-
     def __init__(
         self,
         src,
@@ -100,38 +99,30 @@ class HDF5ImageGenerator(Sequence):
     ):
 
         if mode not in available_modes:
-            raise ValueError(
-                '`mode` should be `"train"`'
-                "(fit_generator() and evaluate_generator()) or"
-                '`"test"` (predict_generator().'
-                "Received: %s" % mode
-            )
+            raise ValueError('`mode` should be `"train"`'
+                             "(fit_generator() and evaluate_generator()) or"
+                             '`"test"` (predict_generator().'
+                             "Received: %s" % mode)
         self.mode = mode
 
         if labels_encoding not in available_labels_encoding:
-            raise ValueError(
-                '`labels_encoding` should be `"hot"` '
-                "(classic binary matrix) or "
-                '`"smooth"` (smooth encoding) or '
-                "False (no labels encoding)."
-                "Received: %s" % labels_encoding
-            )
+            raise ValueError('`labels_encoding` should be `"hot"` '
+                             "(classic binary matrix) or "
+                             '`"smooth"` (smooth encoding) or '
+                             "False (no labels encoding)."
+                             "Received: %s" % labels_encoding)
         self.labels_encoding = labels_encoding
 
         if (self.labels_encoding == "smooth") and not (0 < smooth_factor <= 1):
-            raise ValueError(
-                '`"smooth"` labels encoding'
-                'must use a `"smooth_factor"`'
-                "< 0 smooth_factor <= 1"
-            )
+            raise ValueError('`"smooth"` labels encoding'
+                             'must use a `"smooth_factor"`'
+                             "< 0 smooth_factor <= 1")
 
         if augmenter and not isinstance(augmenter, Compose):
-            raise ValueError(
-                "`augmenter` argument"
-                "must be an instance of albumentations"
-                "`Compose` class."
-                "Received type: %s" % type(augmenter)
-            )
+            raise ValueError("`augmenter` argument"
+                             "must be an instance of albumentations"
+                             "`Compose` class."
+                             "Received type: %s" % type(augmenter))
         self.augmenter = augmenter
 
         self.src: str = src
@@ -142,8 +133,8 @@ class HDF5ImageGenerator(Sequence):
         self.scaler: bool = scaler
         self.smooth_factor: float = smooth_factor
 
-        self.indices = np.arange(self.__get_dataset_shape(self.X_key, 0))
-        
+        self._indices = np.arange(self.__get_dataset_shape(self.X_key, 0))
+
     def __repr__(self):
         """Representation of the class."""
         return f"{self.__class__.__name__}({self.__dict__!r})"
@@ -167,7 +158,9 @@ class HDF5ImageGenerator(Sequence):
             return file[dataset].shape[index]
 
     def __get_dataset_items(
-        self, indices: np.ndarray, dataset: Optional[str] = None
+        self,
+        indices: np.ndarray,
+        dataset: Optional[str] = None
     ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """Get an HDF5 dataset items.
         
@@ -200,11 +193,13 @@ class HDF5ImageGenerator(Sequence):
             The number of batches per epochs.
         """
         return int(
-            np.ceil(self.__get_dataset_shape(self.X_key, 0) / float(self.batch_size))
-        )
+            np.ceil(
+                self.__get_dataset_shape(self.X_key, 0) /
+                float(self.batch_size)))
 
     @staticmethod
-    def apply_labels_smoothing(batch_y: np.ndarray, factor: float) -> np.ndarray:
+    def apply_labels_smoothing(batch_y: np.ndarray,
+                               factor: float) -> np.ndarray:
         """Applies labels smoothing to the original
          labels binary matrix.
          
@@ -226,8 +221,9 @@ class HDF5ImageGenerator(Sequence):
         return batch_y
 
     def apply_labels_encoding(
-        self, batch_y: np.ndarray, smooth_factor: Optional[float] = None
-    ) -> np.ndarray:
+            self,
+            batch_y: np.ndarray,
+            smooth_factor: Optional[float] = None) -> np.ndarray:
         """Converts a class vector (integers) to binary class matrix.
          See Keras to_categorical utils function.
          
@@ -247,7 +243,8 @@ class HDF5ImageGenerator(Sequence):
         batch_y = to_categorical(batch_y)
 
         if smooth_factor is not None:
-            batch_y = self.apply_labels_smoothing(batch_y, factor=smooth_factor)
+            batch_y = self.apply_labels_smoothing(batch_y,
+                                                  factor=smooth_factor)
 
         return batch_y
 
@@ -291,7 +288,8 @@ class HDF5ImageGenerator(Sequence):
 
         return batch_X
 
-    def __next_batch(self, indices: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def __next_batch(self,
+                     indices: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """Generates a batch of train/val data for the given indices.
         
         Arguments
@@ -311,8 +309,7 @@ class HDF5ImageGenerator(Sequence):
         # Shall we apply any data augmentation?
         if self.augmenter:
             batch_X = np.stack(
-                [self.augmenter(image=x)["image"] for x in batch_X], axis=0
-            )
+                [self.augmenter(image=x)["image"] for x in batch_X], axis=0)
 
         # Shall we rescale features?
         if self.scaler:
@@ -323,15 +320,14 @@ class HDF5ImageGenerator(Sequence):
             batch_y = self.apply_labels_encoding(
                 batch_y,
                 smooth_factor=self.smooth_factor
-                if self.labels_encoding == "smooth"
-                else None,
+                if self.labels_encoding == "smooth" else None,
             )
 
         return (batch_X, batch_y)
 
     def __getitem__(
-        self, index: int
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+            self,
+            index: int) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """Generates a batch of data for the given index.
         
         Arguments
@@ -347,9 +343,8 @@ class HDF5ImageGenerator(Sequence):
             a tuple of image tensors (predict).
         """
         # Indices for the current batch.
-        indices = np.sort(
-            self.indices[index * self.batch_size : (index + 1) * self.batch_size]
-        )
+        indices = np.sort(self._indices[index * self.batch_size:(index + 1) *
+                                        self.batch_size])
 
         if self.mode == "train":
             return self.__next_batch(indices)
@@ -362,7 +357,7 @@ class HDF5ImageGenerator(Sequence):
          (not available in test 'mode').
         """
         if (self.mode == "train") and self.shuffle:
-            np.random.shuffle(self.indices)
+            np.random.shuffle(self._indices)
 
     def on_epoch_end(self):
         """Triggered once at the very beginning as well as 
