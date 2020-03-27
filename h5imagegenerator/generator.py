@@ -42,6 +42,10 @@ class HDF5ImageGenerator(Sequence):
         with 0 mean and unit variance.
         "norm" mode means normalization to range [0, 1].
         Default is "std".
+    num_classes : None or int
+        Specifies the total number of classes
+        for labels encoding.
+        Default is None.
     labels_encoding : "hot", "smooth" or False
         "hot" mode means classic one hot encoding.
         "smooth" mode means smooth hot encoding.
@@ -92,6 +96,7 @@ class HDF5ImageGenerator(Sequence):
         batch_size=32,
         shuffle=True,
         scaler=True,
+        num_classes=None,
         labels_encoding="hot",
         smooth_factor=0.1,
         augmenter=False,
@@ -131,6 +136,7 @@ class HDF5ImageGenerator(Sequence):
         self.batch_size: int = batch_size
         self.shuffle: bool = shuffle
         self.scaler: bool = scaler
+        self.num_classes = num_classes
         self.smooth_factor: float = smooth_factor
 
         self._indices = np.arange(self.__get_dataset_shape(self.X_key, 0))
@@ -240,7 +246,7 @@ class HDF5ImageGenerator(Sequence):
         np.ndarray
             A binary class matrix.
         """
-        batch_y = to_categorical(batch_y)
+        batch_y = to_categorical(batch_y, num_classes=self.num_classes)
 
         if smooth_factor is not None:
             batch_y = self.apply_labels_smoothing(batch_y,
