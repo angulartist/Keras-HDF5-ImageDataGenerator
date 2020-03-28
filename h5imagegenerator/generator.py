@@ -189,6 +189,19 @@ class HDF5ImageGenerator(Sequence):
                 return file[dataset][indices]
             else:
                 return (file[self.X_key][indices], file[self.y_key][indices])
+    
+    @property
+    def num_items(self) -> int:
+        """Grab the total number of examples
+         in the dataset.
+         
+        Returns
+        -------
+        int
+            The total number of examples.
+        """
+        with h5.File(self.src, "r", libver="latest", swmr=True) as file:
+            return file[self.X_key].shape[0]
 
     def __len__(self):
         """Denotes the number of batches per epoch.
