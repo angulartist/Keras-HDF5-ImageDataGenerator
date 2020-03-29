@@ -30,6 +30,10 @@ class HDF5ImageGenerator(Sequence):
     y_key : str
         Key of the h5 file labels dataset.
         Default is "labels".
+    classes_key : str
+        Key of the h5 file dataset containing
+        the raw classes.
+        Default is None.
     batch_size : int
         Size of each batch, must be a power of two.
         (16, 32, 64, 128, 256, ...)
@@ -93,6 +97,7 @@ class HDF5ImageGenerator(Sequence):
         src,
         X_key="images",
         y_key="labels",
+        classes_key=None,
         batch_size=32,
         shuffle=True,
         scaler=True,
@@ -104,39 +109,40 @@ class HDF5ImageGenerator(Sequence):
     ):
 
         if mode not in available_modes:
-            raise ValueError('`mode` should be `"train"`'
-                             "(fit_generator() and evaluate_generator()) or"
-                             '`"test"` (predict_generator().'
-                             "Received: %s" % mode)
+            raise ValueError('`mode` should be `train` '
+                             '(fit_generator() and evaluate_generator()) or '
+                             '`test` (predict_generator(). '
+                             'Received: %s' % mode)
         self.mode = mode
 
         if labels_encoding not in available_labels_encoding:
-            raise ValueError('`labels_encoding` should be `"hot"` '
-                             "(classic binary matrix) or "
-                             '`"smooth"` (smooth encoding) or '
-                             "False (no labels encoding)."
-                             "Received: %s" % labels_encoding)
+            raise ValueError('`labels_encoding` should be `hot` '
+                             '(classic binary matrix) or '
+                             '`smooth` (smooth encoding) or '
+                             'False (no labels encoding). '
+                             'Received: %s' % labels_encoding)
         self.labels_encoding = labels_encoding
 
         if (self.labels_encoding == "smooth") and not (0 < smooth_factor <= 1):
-            raise ValueError('`"smooth"` labels encoding'
-                             'must use a `"smooth_factor"`'
-                             "< 0 smooth_factor <= 1")
+            raise ValueError('`smooth` labels encoding '
+                             'must use a `smooth_factor` '
+                             '< 0 smooth_factor <= 1')
 
         if augmenter and not isinstance(augmenter, Compose):
-            raise ValueError("`augmenter` argument"
-                             "must be an instance of albumentations"
-                             "`Compose` class."
-                             "Received type: %s" % type(augmenter))
+            raise ValueError('`augmenter` argument '
+                             'must be an instance of albumentations '
+                             '`Compose` class. '
+                             'Received type: %s' % type(augmenter))
         self.augmenter = augmenter
 
         self.src: str = src
         self.X_key: str = X_key
         self.y_key: str = y_key
+        self.classes_key: str = classes_key
         self.batch_size: int = batch_size
         self.shuffle: bool = shuffle
         self.scaler: bool = scaler
-        self.num_classes = num_classes
+        self.num_classes: int = num_classes
         self.smooth_factor: float = smooth_factor
 
         self._indices = np.arange(self.__get_dataset_shape(self.X_key, 0))
@@ -193,15 +199,31 @@ class HDF5ImageGenerator(Sequence):
     @property
     def num_items(self) -> int:
         """Grab the total number of examples
-         in the dataset.
+         from the dataset.
          
         Returns
         -------
         int
             The total number of examples.
         """
-        with h5.File(self.src, "r", libver="latest", swmr=True) as file:
+        with h5.File(self.src, "r") as file:
             return file[self.X_key].shape[0]
+    
+    @property 
+    def classes(self) -> List:
+        """Grab "human" classes from the dataset.
+        
+        Returns
+        -------
+        list
+            A list of the raw classes.
+        """
+        if self.classes_key is None:
+            raise ValueError('Canceled. parameter `classes_key` '
+                             'is set to None.')
+        
+        with h5.File(self.src, "r") as file:
+            return file[self.classes_key][:]
 
     def __len__(self):
         """Denotes the number of batches per epoch.
